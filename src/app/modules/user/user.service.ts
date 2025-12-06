@@ -18,13 +18,13 @@ const createParticipator = async (req: Request) => {
     const result = await prisma.$transaction(async (tnx) => {
         await tnx.user.create({
             data: {
-                email: req.body.Participator.email,
+                email: req.body.participator.email,
                 password: hashPassword
             }
         });
 
         return await tnx.participator.create({
-            data: req.body.Participator
+            data: req.body.participator
         })
     })
 
