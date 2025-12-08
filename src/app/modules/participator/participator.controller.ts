@@ -43,9 +43,23 @@ const deleteParticipatorFromDB = catchAsync(async (req: Request, res: Response) 
         data: result
     })
 })
+
+const getByIdFromDB = catchAsync(async (req: Request, res: Response) => {
+
+  const { id } = req.params;
+  const result = await ParticipatorService.getByIdFromDB(id);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Participator retrieval successfully',
+    data: result,
+  });
+});
 export const ParticipatorController = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
+    getByIdFromDB
   
 };

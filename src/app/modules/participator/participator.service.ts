@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Participator, Prisma } from "@prisma/client";
 import { prisma } from "../../shared/prisma";
 
 import { participatorSearchableFields } from "./participator.constant";
@@ -136,8 +136,29 @@ return tnx.participator.findUnique({
 });
 };
 
+
+const getByIdFromDB = async (id: string): Promise<Participator | null> => {
+  const result = await prisma.participator.findUnique({
+    where: {
+      id,
+      isDeleted: false,
+    },
+  include: {
+    reviews: true,
+    eventParticipations: {
+      include: {
+        event: true,
+      },
+    },
+  },    
+ 
+  });
+  return result;
+};
+
 export const ParticipatorService = {
 getAllParticipator,
 updateIntoDB,
 deleteParticipatorFromDB,
+getByIdFromDB
 };

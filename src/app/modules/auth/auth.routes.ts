@@ -8,5 +8,6 @@ router.post(
     "/login",
     AuthController.login
 )
+router.get("/me", AuthController.getMe)
 
 export const authRoutes = router;

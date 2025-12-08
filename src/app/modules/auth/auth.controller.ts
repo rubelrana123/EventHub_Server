@@ -6,7 +6,7 @@ import { AuthService } from "./auth.service";
 const login = catchAsync(async (req: Request, res: Response) => {
     const result = await AuthService.login(req.body);
     const { accessToken, refreshToken, needPasswordChange } = result;
-
+   // Set cookie name to val, with the given options.
     res.cookie("accessToken", accessToken, {
         secure: true,
         httpOnly: true,
@@ -30,8 +30,23 @@ const login = catchAsync(async (req: Request, res: Response) => {
             needPasswordChange
         }
     })
-})
+});
+
+const getMe = catchAsync(async (req: Request & { user?: any }, res: Response) => {
+  const user = req.cookies;
+
+  const result = await AuthService.getMe(user);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "User retrieved successfully",
+    data: result,
+  });
+});
+
 
 export const AuthController = {
-    login
+    login,
+    getMe
 }

@@ -15,6 +15,10 @@ router.get(
     ParticipatorController.getAllParticipator
 )
  
+router.get(
+    '/:id',
+    ParticipatorController.getByIdFromDB
+);
 
 router.patch(
     "/",

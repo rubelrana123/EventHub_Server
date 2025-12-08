@@ -1,29 +1,24 @@
-// ...existing code...
+// =======================
+// USER MODEL
+// =======================
 model User {
   id                 String               @id @default(uuid())
   email              String               @unique
   password           String
   role               UserRole             @default(PARTICIPATOR)
-  needPasswordChange Boolean              @default(true)
+  needPasswordChange Boolean              @default(false)
   status             UserStatus           @default(ACTIVE)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
-  // RELATIONS
-  // One-to-one (optional): A User may have one Admin profile
   admin              Admin?
-  // One-to-one (optional): A User may have one Host profile
   host               Host?
-  // One-to-one (optional): A User may have one Participator profile
   participator       Participator?
 
-  // One-to-many: A User (creator) can create many Events
   events             Event[]              @relation("UserEvents")
-  // One-to-many: A User can write many Reviews
   reviews            Review[]             @relation("UserReviews")
-  // One-to-many: A User can have many Payments
   payments           Payment[]            @relation("UserPayments")
-  // Many-to-many (explicit join model): A User can participate in many Events via EventParticipator
+
   eventParticipations EventParticipator[] @relation("UserEventParticipations")
 
   @@map("users")
@@ -42,7 +37,6 @@ model Admin {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // One-to-one: Admin links to exactly one User (by email). This is the inverse of User.admin.
   user User @relation(fields: [email], references: [email])
 
   @@map("admins")
@@ -61,11 +55,8 @@ model Host {
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  // One-to-one: Host profile belongs to one User (by email)
-  user    User    @relation(fields: [email], references: [email])
-  // One-to-many: A Host can host many Events
-  events  Event[] @relation("HostEvents")
+  user   User    @relation(fields: [email], references: [email])
+  events Event[] @relation("HostEvents")
 
   @@map("hosts")
 }
@@ -85,12 +76,11 @@ model Participator {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // One-to-one: Participator profile belongs to one User (by email)
-  user    User     @relation(fields: [email], references: [email])
+  user User @relation(fields: [email], references: [email])
 
-  // One-to-many: A Participator can have many Reviews about them
-  reviews Review[] @relation("ParticipatorReviews")
-  event_participators EventParticipator[]
+  reviews            Review[] @relation("ParticipatorReviews")
+  eventParticipations EventParticipator[]  // NEW: shows all joined events
+
   @@map("participators")
 }
 
@@ -112,39 +102,33 @@ model Event {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  hostId          String?
-  // Many-to-one (optional): Many Events can belong to one Host
-  host            Host?    @relation("HostEvents", fields: [hostId], references: [id])
+  hostId         String?
+  host           Host?     @relation("HostEvents", fields: [hostId], references: [id])
 
-  createdByEmail  String
-  // Many-to-one: Many Events can be created by one User (creator)
-  user            User     @relation("UserEvents", fields: [createdByEmail], references: [email])
+  createdByEmail String
+  user           User      @relation("UserEvents", fields: [createdByEmail], references: [email])
 
-  // Many-to-many (explicit join model): Events have many Participators via EventParticipator
-  participators   EventParticipator[]
-  // One-to-many: An Event can have many Reviews
-  reviews         Review[]
-  // One-to-many: An Event can have many Payments
-  payments        Payment[]
+  participators  EventParticipator[]
+  reviews        Review[]
+  payments       Payment[]
 
   @@map("events")
 }
 
 // =======================
-// EVENT PARTICIPATION (Many-to-Many)
+// EVENT PARTICIPATION MODEL
 // =======================
 model EventParticipator {
   id          String   @id @default(uuid())
   eventId     String
   userId      String
+  participatorId String?        // NEW (link to participator profile)
   joinedAt    DateTime @default(now())
 
-  // Many-to-one: Many EventParticipator entries belong to one Event
-  event       Event @relation(fields: [eventId], references: [id])
-  // Many-to-one: Many EventParticipator entries belong to one User
-  user        User  @relation("UserEventParticipations", fields: [userId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  user         User         @relation("UserEventParticipations", fields: [userId], references: [id])
+  participator Participator? @relation(fields: [participatorId], references: [id])
 
-  // Composite unique ensures a User can't join the same Event twice.
   @@unique([eventId, userId])
   @@map("event_participators")
 }
@@ -153,21 +137,18 @@ model EventParticipator {
 // REVIEWS
 // =======================
 model Review {
-  id             String        @id @default(uuid())
+  id             String   @id @default(uuid())
   rating         Int
   comment        String?
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime @default(now())
 
   eventId        String
   participatorId String
   userId         String?
 
-  // Many-to-one: Many Reviews belong to one Event
-  event          Event         @relation(fields: [eventId], references: [id])
-  // Many-to-one: Many Reviews can be about one Participator
-  participator   Participator  @relation("ParticipatorReviews", fields: [participatorId], references: [id])
-  // Many-to-one (optional): A Review may be authored by a User
-  user           User?         @relation("UserReviews", fields: [userId], references: [id])
+  event        Event        @relation(fields: [eventId], references: [id])
+  participator Participator @relation("ParticipatorReviews", fields: [participatorId], references: [id])
+  user         User?        @relation("UserReviews", fields: [userId], references: [id])
 
   @@map("reviews")
 }
@@ -185,11 +166,8 @@ model Payment {
   eventId    String
   userId     String
 
-  // Many-to-one: Many Payments belong to one Event
   event      Event    @relation(fields: [eventId], references: [id])
-  // Many-to-one: Many Payments belong to one User
   user       User     @relation("UserPayments", fields: [userId], references: [id])
 
   @@map("payments")
 }
-// ...existing code...

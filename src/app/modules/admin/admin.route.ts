@@ -8,13 +8,6 @@ import { AdminController } from "./admin.controller";
 
 const router = express.Router();
  
-
-// 2. **Admin Management**
-
-//    - Implement **get all Admins** with **pagination, filtering, searching, and sorting**.
-//    - Implement **get Admin by ID** functionality.
-//    - Implement **update Admin by ID** functionality.
-//    - Implement **delete Admin by ID** functionality.
  
 router.get(
     "/",

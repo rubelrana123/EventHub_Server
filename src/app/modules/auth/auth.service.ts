@@ -27,6 +27,111 @@ const login = async (payload: { email: string, password: string }) => {
     }
 }
 
+const getMe = async (user: any) => {
+  const accessToken = user.accessToken;
+  const decodedData = jwtHelper.verifyToken(
+    accessToken, 
+    "abcd"
+  );
+
+  const userData = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: decodedData.email,
+      status: UserStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      needPasswordChange: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+
+      // ADMIN PROFILE
+      admin: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePhoto: true,
+          contactNumber: true,
+          isDeleted: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+
+      // HOST PROFILE
+      host: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePhoto: true,
+          contactNumber: true,
+          address: true,
+          isDeleted: true,
+          createdAt: true,
+          updatedAt: true,
+
+          // Host's Events
+          events: {
+            include: {
+              participators: {
+                include: {
+                  user: true,
+                },
+              },
+              reviews: true,
+            },
+          },
+        },
+      },
+
+      // PARTICIPATOR PROFILE
+      participator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePhoto: true,
+          address: true,
+          interests: true,
+          bio: true,
+          isDeleted: true,
+          createdAt: true,
+          updatedAt: true,
+
+          // Reviews given about this participator
+          reviews: true,
+        },
+      },
+
+      // Reviews written by this user
+      reviews: true,
+
+      // Events created by this user (as creator)
+      events: true,
+
+      // User's participations (joined events)
+      eventParticipations: {
+        include: {
+          event: true,
+        },
+      },
+
+      // Payments made by this user
+      payments: true,
+    },
+  });
+
+  return userData;
+};
+
+
+
 export const AuthService = {
-    login
+    login,
+    getMe
 }

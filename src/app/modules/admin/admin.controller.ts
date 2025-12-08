@@ -2,9 +2,9 @@ import { Request, Response } from "express";
 import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
  
-import pick from "../../helpers/pick";
 import { adminFilterableFields } from "./admin.constant";
 import { AdminService } from "./admin.service";
+import pick from "../../helper/pick";
  
  
 const getAllAdmin = catchAsync(async (req: Request, res: Response) => {
