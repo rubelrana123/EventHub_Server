@@ -1,13 +1,45 @@
 import express from 'express'
 import { AuthController } from './auth.controller';
+import auth from '../../middlewares/auth';
+import { UserRole } from '@prisma/client';
 
 
 const router = express.Router();
 
 router.post(
-    "/login",
+    '/login', 
     AuthController.login
+);
+
+router.post(
+    '/refresh-token',
+    AuthController.refreshToken
 )
-router.get("/me", AuthController.getMe)
+
+router.post(
+    '/change-password',
+    auth( 
+        UserRole.ADMIN,
+        UserRole.HOST,
+        UserRole.PARTICIPATOR
+    ),
+    AuthController.changePassword
+);
+
+router.post(
+    '/forgot-password',
+    AuthController.forgotPassword
+);
+
+router.post(
+    '/reset-password',
+    AuthController.resetPassword
+)
+
+router.get(
+    '/me',
+    AuthController.getMe
+)
+
 
 export const authRoutes = router;

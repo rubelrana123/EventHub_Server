@@ -1,25 +1,49 @@
+enum UserRole {
+  PARTICIPATOR
+  HOST
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum HostApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // =======================
 // USER MODEL
 // =======================
 model User {
-  id                 String               @id @default(uuid())
-  email              String               @unique
+  id                 String     @id @default(uuid())
+  email              String     @unique
   password           String
-  role               UserRole             @default(PARTICIPATOR)
-  needPasswordChange Boolean              @default(false)
-  status             UserStatus           @default(ACTIVE)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  role               UserRole   @default(PARTICIPATOR)
+  needPasswordChange Boolean    @default(false)
+  status             UserStatus @default(ACTIVE)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  admin              Admin?
-  host               Host?
-  participator       Participator?
+  admin        Admin?
+  host         Host?
+  participator Participator?
 
-  events             Event[]              @relation("UserEvents")
-  reviews            Review[]             @relation("UserReviews")
-  payments           Payment[]            @relation("UserPayments")
+  events   Event[]   @relation("UserEvents")
+  reviews  Review[]  @relation("UserReviews")
+  payments Payment[] @relation("UserPayments")
 
   eventParticipations EventParticipator[] @relation("UserEventParticipations")
+  hostApplications    HostApplication[]   @relation("UserHostApplications")
 
   @@map("users")
 }
@@ -39,54 +63,68 @@ model Admin {
 
   user User @relation(fields: [email], references: [email])
 
+  handledApplications HostApplication[] @relation("AdminReviewedApplications")
+
   @@map("admins")
 }
 
-// =======================
-// HOST MODEL
-// =======================
+model Participator {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  profilePhoto  String?
+  address       String?
+  contactNumber String?
+  interests     String?
+  bio           String?
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [email], references: [email])
+
+  reviews             Review[]            @relation("ParticipatorReviews")
+  eventParticipations EventParticipator[]
+  hostApplications    HostApplication[]   @relation("ParticipatorHostApplications")
+
+  @@map("participators")
+}
+
+model HostApplication {
+  id             String                @id @default(uuid())
+  userId         String
+  participatorId String
+  adminEmail     String?
+  status         HostApplicationStatus @default(PENDING)
+  message        String?
+  adminNote      String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  isDeleted      Boolean               @default(false)
+  user           User                  @relation("UserHostApplications", fields: [userId], references: [id])
+  participator   Participator          @relation("ParticipatorHostApplications", fields: [participatorId], references: [id])
+  admin          Admin?                @relation("AdminReviewedApplications", fields: [adminEmail], references: [email])
+
+  @@map("host_applications")
+}
+
 model Host {
   id            String   @id @default(uuid())
   name          String
   email         String   @unique
   profilePhoto  String?
-  contactNumber String
+  contactNumber String?
   address       String
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
   user   User    @relation(fields: [email], references: [email])
   events Event[] @relation("HostEvents")
 
   @@map("hosts")
 }
 
-// =======================
-// PARTICIPATOR MODEL
-// =======================
-model Participator {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String
-  profilePhoto String?
-  address      String?
-  interests    String?
-  bio          String?
-  isDeleted    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [email], references: [email])
-
-  reviews            Review[] @relation("ParticipatorReviews")
-  eventParticipations EventParticipator[]  // NEW: shows all joined events
-
-  @@map("participators")
-}
-
-// =======================
-// EVENT MODEL
-// =======================
 model Event {
   id              String   @id @default(uuid())
   title           String
@@ -102,15 +140,15 @@ model Event {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  hostId         String?
-  host           Host?     @relation("HostEvents", fields: [hostId], references: [id])
+  hostId String?
+  host   Host?   @relation("HostEvents", fields: [hostId], references: [id])
 
   createdByEmail String
-  user           User      @relation("UserEvents", fields: [createdByEmail], references: [email])
+  user           User   @relation("UserEvents", fields: [createdByEmail], references: [email])
 
-  participators  EventParticipator[]
-  reviews        Review[]
-  payments       Payment[]
+  participators EventParticipator[]
+  reviews       Review[]
+  payments      Payment[]
 
   @@map("events")
 }
@@ -119,28 +157,26 @@ model Event {
 // EVENT PARTICIPATION MODEL
 // =======================
 model EventParticipator {
-  id          String   @id @default(uuid())
-  eventId     String
-  userId      String
-  participatorId String?        // NEW (link to participator profile)
-  joinedAt    DateTime @default(now())
+  id             String   @id @default(uuid())
+  eventId        String
+  userId         String
+  participatorId String?
+  joinedAt       DateTime @default(now())
 
-  event        Event        @relation(fields: [eventId], references: [id])
-  user         User         @relation("UserEventParticipations", fields: [userId], references: [id])
+  event        Event         @relation(fields: [eventId], references: [id])
+  user         User          @relation("UserEventParticipations", fields: [userId], references: [id])
   participator Participator? @relation(fields: [participatorId], references: [id])
 
   @@unique([eventId, userId])
   @@map("event_participators")
 }
 
-// =======================
-// REVIEWS
-// =======================
+
 model Review {
-  id             String   @id @default(uuid())
-  rating         Int
-  comment        String?
-  createdAt      DateTime @default(now())
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
 
   eventId        String
   participatorId String
@@ -153,21 +189,18 @@ model Review {
   @@map("reviews")
 }
 
-// =======================
-// PAYMENTS
-// =======================
 model Payment {
-  id         String   @id @default(uuid())
-  amount     Int
-  status     String
-  method     String
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  amount    Int
+  status    String
+  method    String
+  createdAt DateTime @default(now())
 
-  eventId    String
-  userId     String
+  eventId String
+  userId  String
 
-  event      Event    @relation(fields: [eventId], references: [id])
-  user       User     @relation("UserPayments", fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation("UserPayments", fields: [userId], references: [id])
 
   @@map("payments")
 }

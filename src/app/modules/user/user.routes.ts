@@ -34,8 +34,8 @@ router.post(
 );
 
 router.post(
-    "/create-host",
-    auth(UserRole.ADMIN),
+    "/host-application",
+    auth(UserRole.ADMIN, UserRole.PARTICIPATOR, UserRole.HOST),
     fileUploader.upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
         console.log(JSON.parse(req.body.data))

@@ -9,6 +9,7 @@ const createParticipatorValidationSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Valid email required"),
     profilePhoto: z.string().optional(),
+    contactNumber: z.string().min(11, "Contact number is required").optional(),
     address: z.string().optional(),
     interests: z.string().optional(),
     bio: z.string().optional(),

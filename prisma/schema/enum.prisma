@@ -1,16 +1,22 @@
-enum UserRole {
-    PARTICIPATOR
-    HOST
-    ADMIN
-}
+// enum UserRole {
+//   PARTICIPATOR
+//   HOST
+//   ADMIN
+// }
 
-enum UserStatus {
-    ACTIVE
-    INACTIVE
-    DELETED
-}
+// enum UserStatus {
+//   ACTIVE
+//   INACTIVE
+//   DELETED
+// }
 
-enum Gender {
-    MALE
-    FEMALE
-}
+// enum Gender {
+//   MALE
+//   FEMALE
+// }
+
+// enum HostApplicationStatus {
+//   PENDING
+//   APPROVED
+//   REJECTED
+// }

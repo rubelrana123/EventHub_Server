@@ -1,0 +1,45 @@
+// model Event {
+//   id              String   @id @default(uuid())
+//   title           String
+//   description     String
+//   bannerPhoto     String?
+//   dateTime        DateTime
+//   location        String
+//   minParticipants Int?
+//   maxParticipants Int?
+//   joiningFee      Int
+//   eventType       String
+//   isDeleted       Boolean  @default(false)
+//   createdAt       DateTime @default(now())
+//   updatedAt       DateTime @updatedAt
+
+//   hostId String?
+//   host   Host?   @relation("HostEvents", fields: [hostId], references: [id])
+
+//   createdByEmail String
+//   user           User   @relation("UserEvents", fields: [createdByEmail], references: [email])
+
+//   participators EventParticipator[]
+//   reviews       Review[]
+//   payments      Payment[]
+
+//   @@map("events")
+// }
+
+// // =======================
+// // EVENT PARTICIPATION MODEL
+// // =======================
+// model EventParticipator {
+//   id             String   @id @default(uuid())
+//   eventId        String
+//   userId         String
+//   participatorId String?
+//   joinedAt       DateTime @default(now())
+
+//   event        Event         @relation(fields: [eventId], references: [id])
+//   user         User          @relation("UserEventParticipations", fields: [userId], references: [id])
+//   participator Participator? @relation(fields: [participatorId], references: [id])
+
+//   @@unique([eventId, userId])
+//   @@map("event_participators")
+// }

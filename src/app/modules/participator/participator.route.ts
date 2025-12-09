@@ -1,6 +1,4 @@
- 
-import express from "express";
- 
+ import express from "express";
 import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
 import { ParticipatorController } from "./participator.controller";
