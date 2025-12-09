@@ -4,6 +4,7 @@ import { authRoutes } from '../modules/auth/auth.routes';
 import { ParticipatorRoutes } from '../modules/participator/participator.route';
 import { AdminRoutes } from '../modules/admin/admin.route';
 import { HostApplicationRoutes } from '../modules/hostApplication/hostApplication.route';
+import { EventRoutes } from '../modules/event/event.route';
 
 
 const router = express.Router();
@@ -28,6 +29,10 @@ const moduleRoutes = [
     {
         path : "/host-application",
         route : HostApplicationRoutes
+    },
+    {
+        path : "/event",
+        route : EventRoutes
     }
  
 ];
