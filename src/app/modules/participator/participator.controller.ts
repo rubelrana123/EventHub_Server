@@ -56,10 +56,28 @@ const getByIdFromDB = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+
+const createParticipation = catchAsync(async (req, res) => {
+  const { eventId } = req.params;
+
+  const result = await  ParticipatorService.createParticipation(
+    eventId,
+   ( req as any).user  
+  )
+  sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: "Event joined successfully",
+      data: result,
+  });
+});
+
 export const ParticipatorController = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
-    getByIdFromDB
+    getByIdFromDB,
+    createParticipation
   
 };

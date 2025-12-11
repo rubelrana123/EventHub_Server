@@ -22,6 +22,16 @@ export default {
         email: process.env.EMAIL_SENDER_EMAIL,
         app_pass: process.env.EMAIL_SENDER_APP_PASS
     },
+    ssl: {
+        storeId: process.env.STORE_ID,
+        storePass: process.env.STORE_PASS,
+        successUrl: process.env.SUCCESS_URL,
+        cancelUrl: process.env.CANCEL_URL,
+        failUrl: process.env.FAIL_URL,
+        sslPaymentApi: process.env.SSL_PAYMENT_API,
+        sslValidationApi: process.env.SSL_VALIDATIOIN_API
+    },
     bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
-    resetPassLink: process.env.RESET_PASS_LINK
+    resetPassLink: process.env.RESET_PASS_LINK,
+    stripeSecretKey : process.env. STRIPE_SECRET_KEY
 }

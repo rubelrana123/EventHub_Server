@@ -21,6 +21,27 @@ enum HostApplicationStatus {
   REJECTED
 }
 
+enum EventStatus {
+  UPCOMING    
+  REGISTRATION_CLOSED
+  LIVE
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  FAILED
+  SUCCESS
+}
+
+enum PaymentMethod {
+  STRIPE
+  PAYPAL
+  SSL_COMMERZ
+}
+
+
 // =======================
 // USER MODEL
 // =======================
@@ -124,21 +145,26 @@ model Host {
 
   @@map("hosts")
 }
-
 model Event {
-  id              String   @id @default(uuid())
+  id              String       @id @default(uuid())
   title           String
   description     String
   bannerPhoto     String?
   dateTime        DateTime
   location        String
+
   minParticipants Int?
   maxParticipants Int?
-  joiningFee      Int
-  eventType       String
-  isDeleted       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  availableSeats  Int?
+
+  joiningFee Int
+  eventType  String
+
+  status     EventStatus  @default(UPCOMING)   // 🆕 add this
+
+  isDeleted  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   hostId String?
   host   Host?   @relation("HostEvents", fields: [hostId], references: [id])
@@ -153,6 +179,7 @@ model Event {
   @@map("events")
 }
 
+
 // =======================
 // EVENT PARTICIPATION MODEL
 // =======================
@@ -162,6 +189,9 @@ model EventParticipator {
   userId         String
   participatorId String?
   joinedAt       DateTime @default(now())
+
+  isBooked       Boolean  @default(false)
+  paymentId      String?  
 
   event        Event         @relation(fields: [eventId], references: [id])
   user         User          @relation("UserEventParticipations", fields: [userId], references: [id])
@@ -192,8 +222,8 @@ model Review {
 model Payment {
   id        String   @id @default(uuid())
   amount    Int
-  status    String
-  method    String
+  status    PaymentStatus @default(UNPAID)
+  method    PaymentMethod?
   createdAt DateTime @default(now())
 
   eventId String

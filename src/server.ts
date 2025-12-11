@@ -46,6 +46,6 @@ async function bootstrap() {
 
 (async () =>{
    await bootstrap();
-//    await seedAdmin()
+   await seedAdmin()
     
 })()

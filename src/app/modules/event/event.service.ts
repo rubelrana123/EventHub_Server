@@ -57,6 +57,7 @@ const createEvent = async (req : any) => {
         location: req.body.location,
         minParticipants: req.body.minParticipants,
         maxParticipants: req.body.maxParticipants,
+        availableSeats : req.body.maxParticipants,
         joiningFee: req.body.joiningFee,
         eventType: req.body.eventType,
 

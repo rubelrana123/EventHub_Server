@@ -29,4 +29,11 @@ router.delete(
     auth(UserRole.ADMIN),
     ParticipatorController.deleteParticipatorFromDB
 )
+
+router.post(
+  "/join/:eventId",
+  auth(UserRole.PARTICIPATOR),
+  ParticipatorController.createParticipation
+);
+
 export const ParticipatorRoutes = router;
