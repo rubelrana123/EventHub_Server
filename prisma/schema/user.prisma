@@ -136,6 +136,7 @@ model Host {
   profilePhoto  String?
   contactNumber String?
   address       String
+  averageRating Float    @default(0)
   isDeleted     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -145,6 +146,47 @@ model Host {
 
   @@map("hosts")
 }
+model EventParticipator {
+  id             String   @id @default(uuid())
+  eventId        String
+  userId         String
+  participatorId String?
+  joinedAt       DateTime @default(now())
+  isBooked       Boolean  @default(false)
+  paymentId     String?  @unique
+  // One-to-one relation with Payment
+  payment        Payment? @relation("ParticipationPayment") 
+
+  event        Event         @relation(fields: [eventId], references: [id])
+  user         User          @relation("UserEventParticipations", fields: [userId], references: [id])
+  participator Participator? @relation(fields: [participatorId], references: [id])
+
+  @@unique([eventId, userId])
+  @@map("event_participators")
+}
+
+model Payment {
+  id                   String            @id @default(uuid())
+  amount               Float             @default(0)
+  status               PaymentStatus     @default(UNPAID)
+  method               PaymentMethod?
+  transactionId        String            @unique
+  eventParticipationId String?           @unique
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  // Define one-to-one relation (opposite side)
+  eventParticipation EventParticipator? @relation("ParticipationPayment", fields: [eventParticipationId], references: [id])
+
+  userId String
+  user   User @relation("UserPayments", fields: [userId], references: [id])
+
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id])
+
+  @@map("payments")
+}
+
 model Event {
   id              String       @id @default(uuid())
   title           String
@@ -152,7 +194,6 @@ model Event {
   bannerPhoto     String?
   dateTime        DateTime
   location        String
-
   minParticipants Int?
   maxParticipants Int?
   availableSeats  Int?
@@ -160,7 +201,7 @@ model Event {
   joiningFee Int
   eventType  String
 
-  status     EventStatus  @default(UPCOMING)   // 🆕 add this
+  status     EventStatus  @default(UPCOMING)
 
   isDeleted  Boolean      @default(false)
   createdAt  DateTime     @default(now())
@@ -174,31 +215,9 @@ model Event {
 
   participators EventParticipator[]
   reviews       Review[]
-  payments      Payment[]
+  payments      Payment[] // now this works, no opposite field needed
 
   @@map("events")
-}
-
-
-// =======================
-// EVENT PARTICIPATION MODEL
-// =======================
-model EventParticipator {
-  id             String   @id @default(uuid())
-  eventId        String
-  userId         String
-  participatorId String?
-  joinedAt       DateTime @default(now())
-
-  isBooked       Boolean  @default(false)
-  paymentId      String?  
-
-  event        Event         @relation(fields: [eventId], references: [id])
-  user         User          @relation("UserEventParticipations", fields: [userId], references: [id])
-  participator Participator? @relation(fields: [participatorId], references: [id])
-
-  @@unique([eventId, userId])
-  @@map("event_participators")
 }
 
 
@@ -206,7 +225,6 @@ model Review {
   id        String   @id @default(uuid())
   rating    Int
   comment   String?
-  createdAt DateTime @default(now())
 
   eventId        String
   participatorId String
@@ -215,22 +233,8 @@ model Review {
   event        Event        @relation(fields: [eventId], references: [id])
   participator Participator @relation("ParticipatorReviews", fields: [participatorId], references: [id])
   user         User?        @relation("UserReviews", fields: [userId], references: [id])
+  createdAt DateTime @default(now())
 
   @@map("reviews")
 }
 
-model Payment {
-  id        String   @id @default(uuid())
-  amount    Int
-  status    PaymentStatus @default(UNPAID)
-  method    PaymentMethod?
-  createdAt DateTime @default(now())
-
-  eventId String
-  userId  String
-
-  event Event @relation(fields: [eventId], references: [id])
-  user  User  @relation("UserPayments", fields: [userId], references: [id])
-
-  @@map("payments")
-}

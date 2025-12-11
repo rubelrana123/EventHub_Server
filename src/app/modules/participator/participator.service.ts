@@ -146,107 +146,86 @@ const getByIdFromDB = async (id: string): Promise<Participator | null> => {
   return result;
 };
 // ...existing code...
-const createParticipation = async (eventId: string, user: any) => {
+  const createParticipation = async (eventId: string, user: any) => {
   const userEmail = user?.email;
-
-  // 1. Validate user
+console.log("hit create partition")
+  // 1️⃣ Find user and participator
   const dbUser = await prisma.user.findFirst({
     where: { email: userEmail, status: UserStatus.ACTIVE },
     include: { participator: true },
   });
-
-  if (!dbUser) {
-    throw new Error("User not found or inactive");
-  }
-  if (!dbUser.participator) {
-    throw new Error("Only participators can join");
-  }
+  if (!dbUser || !dbUser.participator)
+    throw new Error("User not found or cannot participate");
 
   const userId = dbUser.id;
   const participatorId = dbUser.participator.id;
 
-  // 2. Validate event
-  const event = await prisma.event.findFirst({
-    where: { id: eventId, isDeleted: false },
-  });
-
+  // 2️⃣ Find event
+  const event = await prisma.event.findFirst({ where: { id: eventId, isDeleted: false } });
   if (!event) throw new Error("Event not found");
-  if (event.status === EventStatus.REGISTRATION_CLOSED)
-    throw new Error("Registration closed");
   if (
-    event.status === EventStatus.LIVE ||
-    event.status === EventStatus.COMPLETED
+    [EventStatus.LIVE, EventStatus.COMPLETED, EventStatus.REGISTRATION_CLOSED].includes(event.status as any)
   )
-    throw new Error("You cannot join this event now");
+    throw new Error("Cannot join this event now");
+
   if (event.availableSeats !== null && event.availableSeats <= 0)
     throw new Error("No seats available");
 
-  // 3. Prevent duplicate participation
-  const alreadyJoined = await prisma.eventParticipator.findFirst({
-    where: { eventId, userId },
-  });
+  // 3️⃣ Check duplicate participation
+  const alreadyJoined = await prisma.eventParticipator.findFirst({ where: { eventId, userId } });
+  if (alreadyJoined) throw new Error("Already joined this event");
 
-  if (alreadyJoined) {
-    throw new Error("You already joined this event");
-  }
-
-  // 4. Transaction
-  try {
-const result = await prisma.$transaction(async (tx) => {
-  const participation = await tx.eventParticipator.create({
-    data: { eventId, userId, participatorId },
-  });
-
-  const transactionId = uuidv4();
-
-  const payment = await tx.payment.create({
-    data: {
-      id: transactionId,
-      eventId,
-      userId,
-      amount: event.joiningFee,
-      status: PaymentStatus.UNPAID,
-      method: PaymentMethod.STRIPE,
-    },
-  });
-
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    mode: "payment",
-    customer_email: user.email,
-    line_items: [
-      {
-        price_data: {
-          currency: "bdt",
-          product_data: { name: `Event: ${event.title}` },
-          unit_amount: event.joiningFee * 100,
-        },
-        quantity: 1,
+  // 4️⃣ Create participation and payment
+  return await prisma.$transaction(async (tx) => {
+    // Participation (seat reserved, not yet booked)
+    const participation = await tx.eventParticipator.create({
+      data: { eventId, userId, participatorId },
+    });
+console.log("create partition")
+    // Payment record (UNPAID)
+    const payment = await tx.payment.create({
+      data: {
+        eventParticipationId: participation.id,
+        eventId,
+        userId,
+        amount: event.joiningFee,
+        status: PaymentStatus.UNPAID,
+        method: PaymentMethod.STRIPE,
+        transactionId: uuidv4(),
       },
-    ],
-    metadata: {
-      eventId: event.id,
+    });
+console.log("create paynent")
+    // 5️⃣ Create Stripe session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: userEmail,
+      line_items: [
+        {
+          price_data: {
+            currency: "bdt",
+            product_data: { name: `Event: ${event.title}` },
+            unit_amount: event.joiningFee * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        eventId: event.id,
+        paymentId: payment.id,
+        eventParticipatorId: participation.id,
+      },
+      success_url: `https://web.programming-hero.com/home/payment-success?eventId=${event.id}`,
+      cancel_url: `https://next.programming-hero.com/payment-cancel?eventId=${event.id}`,
+    });
+console.log("create session payment",session)
+    return {
+      paymentUrl: session.url,
+      participationId: participation.id,
       paymentId: payment.id,
-      eventParticipatorId: participation.id,
-    },
-    success_url: `https://web.programming-hero.com/home/payment-success?eventId=${event.id}`,
-    cancel_url: `https://next.programming-hero.com/payment-cancel?eventId=${event.id}`,
+    };
   });
-
-  return {
-    paymentUrl: session.url,
-    participationId: participation.id,
-    paymentId: payment.id,
-  };
-});
-
-
-    return result;
-  } catch (err) {
-    throw err;
-  }
 };
-
 // ...existing code...
 export const ParticipatorService = {
   getAllParticipator,
