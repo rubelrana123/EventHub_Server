@@ -1,11 +1,11 @@
 import { Request } from "express";
-import { prisma } from "../../shared/prisma";
+ 
 import bcrypt from "bcryptjs";
 import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { Admin, Host, Prisma, UserRole } from "@prisma/client";
 import { userSearchableFields } from "./user.constant";
-
+import { prisma } from "../../shared/prisma";
 const createParticipator = async (req: Request) => {
 
     if (req.file) {

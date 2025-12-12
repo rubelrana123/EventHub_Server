@@ -1,7 +1,6 @@
  
 import { Prisma, UserStatus } from "@prisma/client";
-import { prisma } from "../../shared/prisma";
-import { fileUploader } from "../../helper/fileUploader";
+import { prisma } from "../../shared/prisma";import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { eventSearchableFields } from "./event.constant";
 

@@ -6,13 +6,13 @@ import {
   Prisma,
   UserStatus,
 } from "@prisma/client";
-import { prisma } from "../../shared/prisma";
-
+ 
 import { participatorSearchableFields } from "./participator.constant";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { IJWTPayload } from "../../types";
 import { stripe } from "../../helper/stripe";
 import { v4 as uuidv4 } from "uuid";
+import { prisma } from "../../shared/prisma";
 
 const getAllParticipator = async (filters: any, options: IOptions) => {
   const { page, limit, skip, sortBy, sortOrder } =

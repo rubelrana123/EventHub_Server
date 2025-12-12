@@ -1,7 +1,6 @@
 import httpStatus from "http-status";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/prisma";
-import ApiError from "../../helper/ApiError";
+import { prisma } from "../../shared/prisma";import ApiError from "../../helper/ApiError";
 import { IJWTPayload } from "../../types";
 import { IPaginationOptions } from "../../types/pagination";
 import { paginationHelper } from "../../helper/paginationHelper";

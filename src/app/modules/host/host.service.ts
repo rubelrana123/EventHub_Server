@@ -2,7 +2,6 @@ import { Prisma, Host, UserStatus } from "@prisma/client";
 import { paginationHelper } from "../../helper/paginationHelper";
 import { IHostFilterRequest, IHostUpdate } from "./host.interface";
 import { prisma } from "../../shared/prisma";
-
 // =========================
 // GET ALL HOSTS
 // =========================

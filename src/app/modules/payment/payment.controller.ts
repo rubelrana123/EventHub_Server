@@ -1,9 +1,9 @@
 import { Request } from "express";
 import Stripe from "stripe";
-import { prisma } from "../../shared/prisma";
+ 
 import { PaymentStatus, PaymentMethod, EventStatus } from "@prisma/client";
 import { stripe } from "../../helper/stripe";
-
+import { prisma } from "../../shared/prisma";
   const handleStripeWebhookEvent = async (req: Request) => {
     console.log("hit strpe hook")
   const sig = req.headers["stripe-signature"] as string;

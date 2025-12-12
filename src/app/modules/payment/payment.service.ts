@@ -1,6 +1,5 @@
 import Stripe from "stripe";
-import { prisma } from "../../shared/prisma";
-import { EventStatus, PaymentMethod, PaymentStatus, Prisma, UserRole } from "@prisma/client";
+import { prisma } from "../../shared/prisma";import { EventStatus, PaymentMethod, PaymentStatus, Prisma, UserRole } from "@prisma/client";
 import { IJWTPayload } from "../../types";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { stripe } from "../../helper/stripe";
