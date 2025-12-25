@@ -1,3 +1,3 @@
-export const participatorFilterableFields = ["email", "name", "id"]
+export const participatorFilterableFields = ["email", "name",]
 
 export const participatorSearchableFields = ["name", "email", "address"]
