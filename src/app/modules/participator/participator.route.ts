@@ -6,7 +6,7 @@ import { ParticipatorController } from "./participator.controller";
 
 const router = express.Router();
  
- 
+ // Participator Routes
 router.get(
     "/",
     auth(UserRole.ADMIN),
