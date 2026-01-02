@@ -60,9 +60,12 @@ const getAllAdmin = async (filters: any, options: IOptions) => {
 
 
 const deleteAdminFromDB = async (id: string) => {
-    return await prisma.admin.delete({
+    return await prisma.admin.update({
         where: {
             id
+        },
+        data: {
+            isDeleted: true
         }
     })
 

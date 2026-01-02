@@ -32,7 +32,7 @@ router.delete(
 
 router.post(
   "/join/:eventId",
-  auth(UserRole.PARTICIPATOR),
+  auth(UserRole.PARTICIPATOR, UserRole.HOST, UserRole.ADMIN),
   ParticipatorController.createParticipation
 );
 
