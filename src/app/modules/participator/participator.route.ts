@@ -29,7 +29,7 @@ router.delete(
     auth(UserRole.ADMIN),
     ParticipatorController.deleteParticipatorFromDB
 )
-
+//booked event by participator
 router.post(
   "/join/:eventId",
   auth(UserRole.PARTICIPATOR, UserRole.HOST, UserRole.ADMIN),
