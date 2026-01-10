@@ -4,6 +4,7 @@ import { UserService } from "./user.service";
 import sendResponse from "../../shared/sendResponse";
 import pick from "../../helper/pick";
 import { userFilterableFields } from "./user.constant";
+import { IJWTPayload } from "../../types";
 
 const createParticipator = catchAsync(async (req: Request, res: Response) => {
     const result = await UserService.createParticipator(req);
@@ -53,9 +54,24 @@ const getAllFromDB = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const updateMyProfie = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const user = req.user;
+
+    const result = await UserService.updateMyProfile(user as IJWTPayload, req);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "My profile updated!",
+        data: result
+    })
+});
+
 export const UserController = {
     createParticipator,
     createAdmin,
     createHost,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfie
 }

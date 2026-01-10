@@ -35,14 +35,23 @@ const getAllAdmin = async (filters: any, options: IOptions) => {
         AND: andConditions
     } : {}
 
+      // ✅ ORDER BY (default: isDeleted first)
+  const orderBy: Prisma.AdminOrderByWithRelationInput[] = [
+    { isDeleted: "asc" }, // false first
+  ];
+
+  if (sortBy && sortOrder) {
+    orderBy.push({
+      [sortBy]: sortOrder,
+    } as Prisma.AdminOrderByWithRelationInput);
+  }
+
     const result = await prisma.admin.findMany({
         skip,
         take: limit,
 
         where: whereConditions,
-        orderBy: {
-            [sortBy]: sortOrder
-        }
+        orderBy 
     });
 
     const total = await prisma.admin.count({

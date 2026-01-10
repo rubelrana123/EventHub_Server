@@ -15,7 +15,7 @@ router.get('/:id', HostController.getByIdFromDB);
 
 router.patch(
     '/:id',
-    auth(  UserRole.ADMIN, UserRole.HOST),
+    auth(  UserRole.ADMIN, UserRole.HOST, UserRole.PARTICIPATOR),
     validateRequest(HostValidation.update),
     HostController.updateIntoDB
 );

@@ -3,7 +3,7 @@ import { Request } from "express";
 import bcrypt from "bcryptjs";
 import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
-import { Admin, Host, Prisma, UserRole } from "@prisma/client";
+import { Admin, Host, Prisma, UserRole, UserStatus } from "@prisma/client";
 import { userSearchableFields } from "./user.constant";
 import { prisma } from "../../shared/prisma";
 const createParticipator = async (req: Request) => {
@@ -151,9 +151,54 @@ const getAllFromDB = async (params: any, options: IOptions) => {
     };
 }
 
+const updateMyProfile = async (user: any, req: Request) => {
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: {
+            email: user?.email,
+            status: UserStatus.ACTIVE
+        }
+    });
+
+    const file = req.file;
+    if (file) {
+        const uploadToCloudinary = await fileUploader.uploadToCloudinary(file);
+        req.body.profilePhoto = uploadToCloudinary?.secure_url;
+    }
+
+    let profileInfo;
+
+    if (userInfo.role === UserRole.ADMIN) {
+        profileInfo = await prisma.admin.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        })
+    } 
+    else if (userInfo.role === UserRole.HOST) {
+        profileInfo = await prisma.host.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        })
+    }
+    else if (userInfo.role === UserRole.PARTICIPATOR) {
+        profileInfo = await prisma.participator.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        })
+    }
+
+    return { ...profileInfo };
+}
+
 export const UserService = {
     createParticipator,
     createAdmin,
     createHost,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfile
 }

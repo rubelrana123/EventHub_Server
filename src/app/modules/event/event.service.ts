@@ -1,9 +1,11 @@
  
-import { Prisma, UserStatus } from "@prisma/client";
+import { EventStatus, PaymentMethod, PaymentStatus, Prisma, UserStatus } from "@prisma/client";
 import { prisma } from "../../shared/prisma";import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { eventSearchableFields } from "./event.constant";
-
+ 
+import { stripe } from "../../helper/stripe";
+import { v4 as uuidv4 } from "uuid";
 // ============================
 // CREATE EVENT
 // ============================
@@ -231,43 +233,122 @@ const deleteEvent = async (eventId: string, user: any) => {
 // ============================
 // USER JOINS EVENT
 // ============================
+// const joinEvent = async (eventId: string, user: any) => {
+//   const userId = user.id;
+
+//   const event = await prisma.event.findUniqueOrThrow({
+//     where: { id: eventId },
+//     include: {
+//       participators: true,
+//     },
+//   });
+
+//   // Check max participants
+//   if (
+//     event.maxParticipants &&
+//     event.participators.length >= event.maxParticipants
+//   ) {
+//     throw new Error("Event seats are full");
+//   }
+
+//   const participator = await prisma.participator.findUnique({
+//     where: { email: user.email },
+//   });
+
+//   if (!participator) {
+//     throw new Error("You must have a Participator profile to join an event");
+//   }
+
+//   const result = await prisma.eventParticipator.create({
+//     data: {
+//       eventId,
+//       userId,
+//       participatorId: participator.id,
+//     },
+//   });
+
+//   return result;
+// };
 const joinEvent = async (eventId: string, user: any) => {
-  const userId = user.id;
-
-  const event = await prisma.event.findUniqueOrThrow({
-    where: { id: eventId },
-    include: {
-      participators: true,
-    },
+  const userEmail = user?.email;
+console.log("hit create partition")
+  // 1️⃣ Find user and participator
+  const dbUser = await prisma.user.findFirst({
+    where: { email: userEmail, status: UserStatus.ACTIVE },
+    include: { participator: true },
   });
+  if (!dbUser || !dbUser.participator)
+    throw new Error("User not found or cannot participate");
 
-  // Check max participants
+  const userId = dbUser.id;
+  const participatorId = dbUser.participator.id;
+
+  // 2️⃣ Find event
+  const event = await prisma.event.findFirst({ where: { id: eventId, isDeleted: false } });
+  if (!event) throw new Error("Event not found");
   if (
-    event.maxParticipants &&
-    event.participators.length >= event.maxParticipants
-  ) {
-    throw new Error("Event seats are full");
-  }
+    [EventStatus.LIVE, EventStatus.COMPLETED, EventStatus.REGISTRATION_CLOSED].includes(event.status as any)
+  )
+    throw new Error("Cannot join this event now");
 
-  const participator = await prisma.participator.findUnique({
-    where: { email: user.email },
+  if (event.availableSeats !== null && event.availableSeats <= 0)
+    throw new Error("No seats available");
+
+  // 3️⃣ Check duplicate participation
+  const alreadyJoined = await prisma.eventParticipator.findFirst({ where: { eventId, userId } });
+  if (alreadyJoined) throw new Error("Already joined this event");
+
+  // 4️⃣ Create participation and payment
+  return await prisma.$transaction(async (tx) => {
+    // Participation (seat reserved, not yet booked)
+    const participation = await tx.eventParticipator.create({
+      data: { eventId, userId, participatorId },
+    });
+console.log("create partition")
+    // Payment record (UNPAID)
+    const payment = await tx.payment.create({
+      data: {
+        eventParticipationId: participation.id,
+        eventId,
+        userId,
+        amount: event.joiningFee,
+        status: PaymentStatus.UNPAID,
+        method: PaymentMethod.STRIPE,
+        transactionId: uuidv4()  ,
+      },
+    });
+console.log("create paynent")
+    // 5️⃣ Create Stripe session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: userEmail,
+      line_items: [
+        {
+          price_data: {
+            currency: "bdt",
+            product_data: { name: `Event: ${event.title}` },
+            unit_amount: event.joiningFee * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        eventId: event.id,
+        paymentId: payment.id,
+        eventParticipatorId: participation.id,
+      },
+      success_url: `https://web.programming-hero.com/home/payment-success?eventId=${event.id}`,
+      cancel_url: `https://next.programming-hero.com/payment-cancel?eventId=${event.id}`,
+    });
+console.log("create session payment",session)
+    return {
+      paymentUrl: session.url,
+      participationId: participation.id,
+      paymentId: payment.id,
+    };
   });
-
-  if (!participator) {
-    throw new Error("You must have a Participator profile to join an event");
-  }
-
-  const result = await prisma.eventParticipator.create({
-    data: {
-      eventId,
-      userId,
-      participatorId: participator.id,
-    },
-  });
-
-  return result;
 };
-
 // ============================
 // EXPORT
 // ============================
