@@ -21,7 +21,6 @@ router.post(
 
 router.get(
   "/",
-//   auth(UserRole.ADMIN, UserRole.HOST),
   EventController.getAllEvents
 );
 
