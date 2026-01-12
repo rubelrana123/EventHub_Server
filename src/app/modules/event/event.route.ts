@@ -18,7 +18,7 @@ router.post(
     return EventController.createEvent(req, res, next);
   }
 );
-
+//publick get all events
 router.get(
   "/",
   EventController.getAllEvents
