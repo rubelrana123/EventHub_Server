@@ -59,6 +59,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   }
   const result = await AuthService.login(req.body);
   const { refreshToken, accessToken } = result;
+  // set cookies for accessToken and refreshToken
   res.cookie("accessToken", accessToken, {
     secure: true,
     httpOnly: true,
