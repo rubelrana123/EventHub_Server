@@ -6,10 +6,12 @@ import { prisma } from "../../shared/prisma";
 
 const getAllAdmin = async (filters: any, options: IOptions) => {
    const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options);
-      const { searchTerm, specialties, ...filterData } = filters;
+      const { searchTerm, ...filterData } = filters;
   
       const andConditions: Prisma.AdminWhereInput[] = [];
-  
+
+   console.log(searchTerm, "here searchterm", andConditions);
+   // SEARCHING
       if (searchTerm) {
           andConditions.push({
               OR: adminSearchableFields.map((field) => ({
@@ -20,7 +22,7 @@ const getAllAdmin = async (filters: any, options: IOptions) => {
               }))
           })
       }
- 
+ // FILTERING
       if (Object.keys(filterData).length > 0) {
           const filterConditions = Object.keys(filterData).map((key) => ({
               [key]: {
