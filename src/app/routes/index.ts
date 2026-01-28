@@ -32,7 +32,7 @@ const moduleRoutes = [
         route : HostApplicationRoutes
     },
     {
-        path : "/events",
+        path : "/event",
         route : EventRoutes
     },
     {

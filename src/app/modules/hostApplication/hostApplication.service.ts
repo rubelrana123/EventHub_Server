@@ -155,7 +155,7 @@ const prisma = new PrismaClient();
   }
 
   // ❗ Only fetch non-deleted applications (if you have soft delete)
-  andConditions.push({ isDeleted: false });
+  andConditions.push({ isDeleted: false, status: { in: ["PENDING", "REJECTED"] } });
 
   const whereConditions: Prisma.HostApplicationWhereInput = {
     AND: andConditions,
@@ -222,6 +222,8 @@ const deleteHostApplication = async (applicationId: string) => {
         data: { isDeleted: true },
     });
 }
+
+ 
 
 export const HostApplicationService = {
   applyForHost,
