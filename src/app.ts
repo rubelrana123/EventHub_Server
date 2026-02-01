@@ -10,6 +10,7 @@ import { PaymentController } from './app/modules/payment/payment.controller';
 
 const app: Application = express();
 app.use(cookieParser());
+// Stripe webhook endpoint
 app.post(
     "/webhook",
     express.raw({ type: "application/json" }),
