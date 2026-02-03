@@ -7,12 +7,12 @@ import { HostValidation } from './host.validation';
 
 const router = express.Router();
 
- 
+ // Create a new host
 router.get('/', HostController.getAllFromDB);
 
- 
+ // Get host by ID
 router.get('/:id', HostController.getByIdFromDB);
-
+// update a new host
 router.patch(
     '/:id',
     auth(  UserRole.ADMIN, UserRole.HOST, UserRole.PARTICIPATOR),
@@ -20,14 +20,14 @@ router.patch(
     HostController.updateIntoDB
 );
 
- 
+ // delete a host
 router.delete(
     '/:id',
     auth(UserRole.ADMIN),
     HostController.deleteFromDB
 );
 
- 
+ // soft delete a host
 router.delete(
     '/soft/:id',
     auth(UserRole.ADMIN),
