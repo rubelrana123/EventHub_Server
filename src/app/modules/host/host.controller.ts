@@ -5,7 +5,7 @@ import catchAsync from '../../shared/catchAsync';
 import pick from '../../helper/pick';
 import sendResponse from '../../shared/sendResponse';
 import { HostService } from './host.service';
-
+//controller functions
 const getAllFromDB = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, hostFilterableFields);
 
