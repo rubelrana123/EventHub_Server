@@ -21,7 +21,7 @@ const getAllFromDB = catchAsync(async (req: Request, res: Response) => {
         data: result.data,
     });
 });
-
+// get host by id
 const getByIdFromDB = catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
     const result = await HostService.getByIdFromDB(id);
