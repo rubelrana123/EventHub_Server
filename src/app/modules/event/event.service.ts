@@ -1,5 +1,11 @@
  
-import { EventStatus, PaymentMethod, PaymentStatus, Prisma, UserStatus } from "@prisma/client";
+import {
+  EventStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+  UserStatus,
+} from "@prisma/client";
 import { prisma } from "../../shared/prisma";import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { eventSearchableFields } from "./event.constant";
@@ -172,6 +178,7 @@ const getEventById = async (id: string) => {
       reviews: true,
     },
   });
+
 };
 
 // ============================
@@ -269,85 +276,129 @@ const deleteEvent = async (eventId: string, user: any) => {
 
 //   return result;
 // };
+const getFrontendBaseUrl = () => {
+  return process.env.FRONTEND_URL || "http://localhost:3000";
+};
+
+const createStripeSessionForParticipation = async (params: {
+  eventId: string;
+  eventTitle: string;
+  eventFee: number;
+  userEmail: string;
+  paymentId: string;
+  participationId: string;
+}) => {
+  const baseUrl = getFrontendBaseUrl();
+
+  return stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: params.userEmail,
+    line_items: [
+      {
+        price_data: {
+          currency: "bdt",
+          product_data: { name: `Event: ${params.eventTitle}` },
+          unit_amount: params.eventFee * 100,
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      eventId: params.eventId,
+      paymentId: params.paymentId,
+      eventParticipatorId: params.participationId,
+    },
+    success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
+    cancel_url: `${baseUrl}/events/${params.eventId}`,
+  });
+};
+
 const joinEvent = async (eventId: string, user: any) => {
   const userEmail = user?.email;
-console.log("hit create partition")
-  // 1️⃣ Find user and participator
+
   const dbUser = await prisma.user.findFirst({
     where: { email: userEmail, status: UserStatus.ACTIVE },
     include: { participator: true },
   });
-  if (!dbUser || !dbUser.participator)
+
+  if (!dbUser || !dbUser.participator) {
     throw new Error("User not found or cannot participate");
+  }
 
   const userId = dbUser.id;
   const participatorId = dbUser.participator.id;
 
-  // 2️⃣ Find event
-  const event = await prisma.event.findFirst({ where: { id: eventId, isDeleted: false } });
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, isDeleted: false },
+  });
   if (!event) throw new Error("Event not found");
+
   if (
     [EventStatus.LIVE, EventStatus.COMPLETED, EventStatus.REGISTRATION_CLOSED].includes(event.status as any)
-  )
+  ) {
     throw new Error("Cannot join this event now");
+  }
 
-  if (event.availableSeats !== null && event.availableSeats <= 0)
+  if (event.availableSeats !== null && event.availableSeats <= 0) {
     throw new Error("No seats available");
+  }
 
-  // 3️⃣ Check duplicate participation
-  const alreadyJoined = await prisma.eventParticipator.findFirst({ where: { eventId, userId } });
-  if (alreadyJoined) throw new Error("Already joined this event");
-
-  // 4️⃣ Create participation and payment
-  return await prisma.$transaction(async (tx) => {
-    // Participation (seat reserved, not yet booked)
-    const participation = await tx.eventParticipator.create({
-      data: { eventId, userId, participatorId },
-    });
-console.log("create partition")
-    // Payment record (UNPAID)
-    const payment = await tx.payment.create({
-      data: {
-        eventParticipationId: participation.id,
-        eventId,
-        userId,
-        amount: event.joiningFee,
-        status: PaymentStatus.UNPAID,
-        method: PaymentMethod.STRIPE,
-        transactionId: uuidv4()  ,
-      },
-    });
-console.log("create paynent")
-    // 5️⃣ Create Stripe session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      customer_email: userEmail,
-      line_items: [
-        {
-          price_data: {
-            currency: "bdt",
-            product_data: { name: `Event: ${event.title}` },
-            unit_amount: event.joiningFee * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        eventId: event.id,
-        paymentId: payment.id,
-        eventParticipatorId: participation.id,
-      },
-      success_url: `https://web.programming-hero.com/home/payment-success?eventId=${event.id}`,
-      cancel_url: `https://next.programming-hero.com/payment-cancel?eventId=${event.id}`,
-    });
-console.log("create session payment",session)
-    return {
-      paymentUrl: session.url,
-      participationId: participation.id,
-      paymentId: payment.id,
-    };
+  const existingParticipation = await prisma.eventParticipator.findFirst({
+    where: { eventId, userId },
+    include: { payment: true },
   });
+
+  if (existingParticipation?.isBooked || existingParticipation?.payment?.status === PaymentStatus.PAID) {
+    throw new Error("Already joined this event");
+  }
+
+  const participationAndPayment = existingParticipation
+    ? {
+        participationId: existingParticipation.id,
+        paymentId: existingParticipation.payment?.id,
+      }
+    : await prisma.$transaction(async (tx) => {
+        const participation = await tx.eventParticipator.create({
+          data: { eventId, userId, participatorId },
+        });
+
+        const payment = await tx.payment.create({
+          data: {
+            eventParticipationId: participation.id,
+            eventId,
+            userId,
+            amount: event.joiningFee,
+            status: PaymentStatus.UNPAID,
+            method: PaymentMethod.STRIPE,
+            transactionId: uuidv4(),
+          },
+        });
+
+        return {
+          participationId: participation.id,
+          paymentId: payment.id,
+        };
+      });
+
+  if (!participationAndPayment.paymentId) {
+    throw new Error("Payment information not found");
+  }
+
+  const session = await createStripeSessionForParticipation({
+    eventId: event.id,
+    eventTitle: event.title,
+    eventFee: event.joiningFee,
+    userEmail,
+    paymentId: participationAndPayment.paymentId,
+    participationId: participationAndPayment.participationId,
+  });
+
+  return {
+    paymentUrl: session.url,
+    participationId: participationAndPayment.participationId,
+    paymentId: participationAndPayment.paymentId,
+  };
 };
 // ============================
 // EXPORT

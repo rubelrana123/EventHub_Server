@@ -202,6 +202,132 @@ const getAllPublic = (filters, options) => __awaiter(void 0, void 0, void 0, fun
         data: result,
     };
 });
+// =========================
+// HOST: MY EVENT PARTICIPATORS
+// =========================
+const getMyEventParticipators = (user, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { limit, page, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
+    const host = yield prisma_1.prisma.host.findUnique({
+        where: { email: user.email, isDeleted: false },
+    });
+    if (!host) {
+        throw new Error("Host profile not found");
+    }
+    const whereConditions = {
+        event: {
+            hostId: host.id,
+            isDeleted: false,
+        },
+    };
+    const data = yield prisma_1.prisma.eventParticipator.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: {
+            [sortBy || "joinedAt"]: sortOrder || "desc",
+        },
+        include: {
+            event: {
+                select: {
+                    id: true,
+                    title: true,
+                    eventType: true,
+                    dateTime: true,
+                    location: true,
+                    joiningFee: true,
+                    status: true,
+                },
+            },
+            participator: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                },
+            },
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                },
+            },
+            payment: true,
+        },
+    });
+    const total = yield prisma_1.prisma.eventParticipator.count({
+        where: whereConditions,
+    });
+    return {
+        meta: { total, page, limit },
+        data,
+    };
+});
+// =========================
+// HOST: MY EVENT REVIEWS
+// =========================
+const getMyEventReviews = (user, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { limit, page, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
+    const host = yield prisma_1.prisma.host.findUnique({
+        where: { email: user.email, isDeleted: false },
+    });
+    if (!host) {
+        throw new Error("Host profile not found");
+    }
+    const whereConditions = {
+        event: {
+            hostId: host.id,
+            isDeleted: false,
+        },
+    };
+    const data = yield prisma_1.prisma.review.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        orderBy: {
+            [sortBy || "createdAt"]: sortOrder || "desc",
+        },
+        include: {
+            event: {
+                select: {
+                    id: true,
+                    title: true,
+                    eventType: true,
+                    dateTime: true,
+                    location: true,
+                    status: true,
+                },
+            },
+            participator: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profilePhoto: true,
+                    contactNumber: true,
+                },
+            },
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    status: true,
+                },
+            },
+        },
+    });
+    const total = yield prisma_1.prisma.review.count({
+        where: whereConditions,
+    });
+    return {
+        meta: { total, page, limit },
+        data,
+    };
+});
 exports.HostService = {
     getAllFromDB,
     getByIdFromDB,
@@ -209,4 +335,6 @@ exports.HostService = {
     deleteFromDB,
     softDelete,
     getAllPublic,
+    getMyEventParticipators,
+    getMyEventReviews,
 };

@@ -217,6 +217,148 @@ const getAllPublic = async (
   };
 };
 
+// =========================
+// HOST: MY EVENT PARTICIPATORS
+// =========================
+const getMyEventParticipators = async (user: any, options: any) => {
+  const { limit, page, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+
+  const host = await prisma.host.findUnique({
+    where: { email: user.email, isDeleted: false },
+  });
+
+  if (!host) {
+    throw new Error("Host profile not found");
+  }
+
+  const whereConditions: Prisma.EventParticipatorWhereInput = {
+    event: {
+      hostId: host.id,
+      isDeleted: false,
+    },
+  };
+
+  const data = await prisma.eventParticipator.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy || "joinedAt"]: sortOrder || "desc",
+    },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+          eventType: true,
+          dateTime: true,
+          location: true,
+          joiningFee: true,
+          status: true,
+        },
+      },
+      participator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePhoto: true,
+          contactNumber: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          status: true,
+        },
+      },
+      payment: true,
+    },
+  });
+
+  const total = await prisma.eventParticipator.count({
+    where: whereConditions,
+  });
+
+  return {
+    meta: { total, page, limit },
+    data,
+  };
+};
+
+// =========================
+// HOST: MY EVENT REVIEWS
+// =========================
+const getMyEventReviews = async (user: any, options: any) => {
+  const { limit, page, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options);
+
+  const host = await prisma.host.findUnique({
+    where: { email: user.email, isDeleted: false },
+  });
+
+  if (!host) {
+    throw new Error("Host profile not found");
+  }
+
+  const whereConditions: Prisma.ReviewWhereInput = {
+    event: {
+      hostId: host.id,
+      isDeleted: false,
+    },
+  };
+
+  const data = await prisma.review.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy || "createdAt"]: sortOrder || "desc",
+    },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+          eventType: true,
+          dateTime: true,
+          location: true,
+          status: true,
+        },
+      },
+      participator: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profilePhoto: true,
+          contactNumber: true,
+        },
+      },
+      user: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          status: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.review.count({
+    where: whereConditions,
+  });
+
+  return {
+    meta: { total, page, limit },
+    data,
+  };
+};
+
 export const HostService = {
   getAllFromDB,
   getByIdFromDB,
@@ -224,4 +366,6 @@ export const HostService = {
   deleteFromDB,
   softDelete,
   getAllPublic,
+  getMyEventParticipators,
+  getMyEventReviews,
 };

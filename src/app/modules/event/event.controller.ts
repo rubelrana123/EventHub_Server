@@ -113,12 +113,12 @@ const joinEvent = catchAsync(async (req, res) => {
 
   const result = await  EventService.joinEvent(
     eventId,
-   ( req as any).user  
+   ( req as any).user
   )
   sendResponse(res, {
       statusCode: 200,
       success: true,
-      message: "Event joined successfully",
+      message: "Checkout initiated successfully",
       data: result,
   });
 });

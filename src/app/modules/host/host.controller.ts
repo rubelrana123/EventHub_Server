@@ -23,13 +23,39 @@ const getAllFromDB = catchAsync(async (req: Request, res: Response) => {
 });
 // get host by id
 const getByIdFromDB = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const result = await HostService.getByIdFromDB(id);
+  const { id } = req.params;
+  const result = await HostService.getByIdFromDB(id);
     sendResponse(res, {
         statusCode: 200,
         success: true,
         message: 'Host retrieval successfully',
         data: result,
+    });
+});
+
+const getMyEventParticipators = catchAsync(async (req: Request, res: Response) => {
+    const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    const result = await HostService.getMyEventParticipators((req as any).user, options);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'My event participators retrieval successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
+const getMyEventReviews = catchAsync(async (req: Request, res: Response) => {
+    const options = pick(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    const result = await HostService.getMyEventReviews((req as any).user, options);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: 'My event reviews retrieval successfully',
+        meta: result.meta,
+        data: result.data,
     });
 });
 
@@ -74,6 +100,8 @@ export const HostController = {
     updateIntoDB,
     getAllFromDB,
     getByIdFromDB,
+    getMyEventParticipators,
+    getMyEventReviews,
     deleteFromDB,
     softDelete,
   

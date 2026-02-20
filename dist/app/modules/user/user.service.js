@@ -142,9 +142,49 @@ const getAllFromDB = (params, options) => __awaiter(void 0, void 0, void 0, func
         data: result
     };
 });
+const updateMyProfile = (user, req) => __awaiter(void 0, void 0, void 0, function* () {
+    const userInfo = yield prisma_1.prisma.user.findUniqueOrThrow({
+        where: {
+            email: user === null || user === void 0 ? void 0 : user.email,
+            status: client_1.UserStatus.ACTIVE
+        }
+    });
+    const file = req.file;
+    if (file) {
+        const uploadToCloudinary = yield fileUploader_1.fileUploader.uploadToCloudinary(file);
+        req.body.profilePhoto = uploadToCloudinary === null || uploadToCloudinary === void 0 ? void 0 : uploadToCloudinary.secure_url;
+    }
+    let profileInfo;
+    if (userInfo.role === client_1.UserRole.ADMIN) {
+        profileInfo = yield prisma_1.prisma.admin.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        });
+    }
+    else if (userInfo.role === client_1.UserRole.HOST) {
+        profileInfo = yield prisma_1.prisma.host.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        });
+    }
+    else if (userInfo.role === client_1.UserRole.PARTICIPATOR) {
+        profileInfo = yield prisma_1.prisma.participator.update({
+            where: {
+                email: userInfo.email
+            },
+            data: req.body
+        });
+    }
+    return Object.assign({}, profileInfo);
+});
 exports.UserService = {
     createParticipator,
     createAdmin,
     createHost,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfile
 };

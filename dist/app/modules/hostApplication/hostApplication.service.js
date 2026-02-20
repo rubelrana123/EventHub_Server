@@ -146,7 +146,7 @@ const getAllHostApplications = (filters, options) => __awaiter(void 0, void 0, v
         });
     }
     // ❗ Only fetch non-deleted applications (if you have soft delete)
-    andConditions.push({ isDeleted: false });
+    andConditions.push({ isDeleted: false, status: { in: ["PENDING", "REJECTED"] } });
     const whereConditions = {
         AND: andConditions,
     };

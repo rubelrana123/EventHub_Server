@@ -25,4 +25,8 @@ router.post("/host-application", (0, auth_1.default)(client_1.UserRole.ADMIN, cl
     req.body = user_validation_1.UserValidation.createHostValidationSchema.parse(JSON.parse(req.body.data));
     return user_controller_1.UserController.createHost(req, res, next);
 });
+router.patch("/update-my-profile", (0, auth_1.default)(client_1.UserRole.ADMIN, client_1.UserRole.HOST, client_1.UserRole.PARTICIPATOR), fileUploader_1.fileUploader.upload.single('file'), (req, res, next) => {
+    req.body = JSON.parse(req.body.data);
+    return user_controller_1.UserController.updateMyProfie(req, res, next);
+});
 exports.userRoutes = router;

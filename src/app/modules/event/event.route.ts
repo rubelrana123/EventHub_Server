@@ -24,11 +24,11 @@ router.get(
   EventController.getAllEvents
 );
 
-router.get("/:id", auth(UserRole.ADMIN), EventController.getSingleEvent);
+router.get("/:id", EventController.getSingleEvent);
 
 router.patch(
   "/:id",
-  auth(UserRole.ADMIN, UserRole.HOST),
+  auth(UserRole.HOST),
   EventController.updateEvent
 );
 
@@ -37,7 +37,7 @@ router.patch("/soft/:id", auth(UserRole.ADMIN), EventController.deleteEvent);
 //booked event by participator
 router.post(
   "/:eventId/join",
-  auth(UserRole.PARTICIPATOR, UserRole.HOST, UserRole.ADMIN),
+  auth(UserRole.PARTICIPATOR),
   EventController.joinEvent
 );
 export const EventRoutes = router;

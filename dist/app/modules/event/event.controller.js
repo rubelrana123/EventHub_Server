@@ -92,14 +92,24 @@ const deleteEvent = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
 // ============================
 // JOIN EVENT
 // ============================
+// const joinEvent = catchAsync(async (req, res) => {
+//   const { eventId } = req.params;
+//   const user = (req as any).user;
+//   const result = await EventService.joinEvent(eventId, user);
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     message: "Event joined successfully",
+//     data: result,
+//   });
+// });
 const joinEvent = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { eventId } = req.params;
-    const user = req.user;
-    const result = yield event_service_1.EventService.joinEvent(eventId, user);
+    const result = yield event_service_1.EventService.joinEvent(eventId, req.user);
     (0, sendResponse_1.default)(res, {
+        statusCode: 200,
         success: true,
-        statusCode: http_status_1.default.OK,
-        message: "Event joined successfully",
+        message: "Checkout initiated successfully",
         data: result,
     });
 }));

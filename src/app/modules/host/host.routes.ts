@@ -10,6 +10,18 @@ const router = express.Router();
  // Create a new host
 router.get('/', HostController.getAllFromDB);
 
+// Host: get all participators who joined my events
+router.get(
+    '/my-event-participators',
+    auth(UserRole.HOST),
+    HostController.getMyEventParticipators
+);
+router.get(
+    '/my-event-reviews',
+    auth(UserRole.HOST),
+    HostController.getMyEventReviews
+);
+
  // Get host by ID
 router.get('/:id', HostController.getByIdFromDB);
 // update a new host

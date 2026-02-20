@@ -78,6 +78,7 @@ const login = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, 
     }
     const result = yield auth_service_1.AuthService.login(req.body);
     const { refreshToken, accessToken } = result;
+    // set cookies for accessToken and refreshToken
     res.cookie("accessToken", accessToken, {
         secure: true,
         httpOnly: true,

@@ -18,6 +18,7 @@ const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const pick_1 = __importDefault(require("../../helper/pick"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const host_service_1 = require("./host.service");
+//controller functions
 const getAllFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const filters = (0, pick_1.default)(req.query, host_constants_1.hostFilterableFields);
     const options = (0, pick_1.default)(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
@@ -30,6 +31,7 @@ const getAllFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
         data: result.data,
     });
 }));
+// get host by id
 const getByIdFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const result = yield host_service_1.HostService.getByIdFromDB(id);
@@ -38,6 +40,28 @@ const getByIdFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, 
         success: true,
         message: 'Host retrieval successfully',
         data: result,
+    });
+}));
+const getMyEventParticipators = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const options = (0, pick_1.default)(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    const result = yield host_service_1.HostService.getMyEventParticipators(req.user, options);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'My event participators retrieval successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+}));
+const getMyEventReviews = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const options = (0, pick_1.default)(req.query, ['limit', 'page', 'sortBy', 'sortOrder']);
+    const result = yield host_service_1.HostService.getMyEventReviews(req.user, options);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'My event reviews retrieval successfully',
+        meta: result.meta,
+        data: result.data,
     });
 }));
 const updateIntoDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -74,6 +98,8 @@ exports.HostController = {
     updateIntoDB,
     getAllFromDB,
     getByIdFromDB,
+    getMyEventParticipators,
+    getMyEventReviews,
     deleteFromDB,
     softDelete,
 };

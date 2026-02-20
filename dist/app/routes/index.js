@@ -10,6 +10,7 @@ const participator_route_1 = require("../modules/participator/participator.route
 const admin_route_1 = require("../modules/admin/admin.route");
 const hostApplication_route_1 = require("../modules/hostApplication/hostApplication.route");
 const event_route_1 = require("../modules/event/event.route");
+const host_routes_1 = require("../modules/host/host.routes");
 const router = express_1.default.Router();
 const moduleRoutes = [
     {
@@ -35,6 +36,10 @@ const moduleRoutes = [
     {
         path: "/event",
         route: event_route_1.EventRoutes
+    },
+    {
+        path: "/host",
+        route: host_routes_1.HostRoutes
     }
 ];
 moduleRoutes.forEach(route => router.use(route.path, route.route));

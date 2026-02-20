@@ -26,8 +26,10 @@ const paginationHelper_1 = require("../../helper/paginationHelper");
 const prisma_1 = require("../../shared/prisma");
 const getAllAdmin = (filters, options) => __awaiter(void 0, void 0, void 0, function* () {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
-    const { searchTerm, specialties } = filters, filterData = __rest(filters, ["searchTerm", "specialties"]);
+    const { searchTerm } = filters, filterData = __rest(filters, ["searchTerm"]);
     const andConditions = [];
+    console.log(searchTerm, "here searchterm", andConditions);
+    // SEARCHING
     if (searchTerm) {
         andConditions.push({
             OR: admin_constant_1.adminSearchableFields.map((field) => ({
@@ -38,6 +40,7 @@ const getAllAdmin = (filters, options) => __awaiter(void 0, void 0, void 0, func
             }))
         });
     }
+    // FILTERING
     if (Object.keys(filterData).length > 0) {
         const filterConditions = Object.keys(filterData).map((key) => ({
             [key]: {
@@ -49,13 +52,20 @@ const getAllAdmin = (filters, options) => __awaiter(void 0, void 0, void 0, func
     const whereConditions = andConditions.length > 0 ? {
         AND: andConditions
     } : {};
+    // ✅ ORDER BY (default: isDeleted first)
+    const orderBy = [
+        { isDeleted: "asc" }, // false first
+    ];
+    if (sortBy && sortOrder) {
+        orderBy.push({
+            [sortBy]: sortOrder,
+        });
+    }
     const result = yield prisma_1.prisma.admin.findMany({
         skip,
         take: limit,
         where: whereConditions,
-        orderBy: {
-            [sortBy]: sortOrder
-        }
+        orderBy
     });
     const total = yield prisma_1.prisma.admin.count({
         where: whereConditions
@@ -70,9 +80,12 @@ const getAllAdmin = (filters, options) => __awaiter(void 0, void 0, void 0, func
     };
 });
 const deleteAdminFromDB = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    return yield prisma_1.prisma.admin.delete({
+    return yield prisma_1.prisma.admin.update({
         where: {
             id
+        },
+        data: {
+            isDeleted: true
         }
     });
 });

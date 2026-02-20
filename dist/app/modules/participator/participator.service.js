@@ -21,11 +21,8 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ParticipatorService = void 0;
-const client_1 = require("@prisma/client");
 const participator_constant_1 = require("./participator.constant");
 const paginationHelper_1 = require("../../helper/paginationHelper");
-const stripe_1 = require("../../helper/stripe");
-const uuid_1 = require("uuid");
 const prisma_1 = require("../../shared/prisma");
 const getAllParticipator = (filters, options) => __awaiter(void 0, void 0, void 0, function* () {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
@@ -140,86 +137,9 @@ const getByIdFromDB = (id) => __awaiter(void 0, void 0, void 0, function* () {
     return result;
 });
 // ...existing code...
-const createParticipation = (eventId, user) => __awaiter(void 0, void 0, void 0, function* () {
-    const userEmail = user === null || user === void 0 ? void 0 : user.email;
-    console.log("hit create partition");
-    // 1️⃣ Find user and participator
-    const dbUser = yield prisma_1.prisma.user.findFirst({
-        where: { email: userEmail, status: client_1.UserStatus.ACTIVE },
-        include: { participator: true },
-    });
-    if (!dbUser || !dbUser.participator)
-        throw new Error("User not found or cannot participate");
-    const userId = dbUser.id;
-    const participatorId = dbUser.participator.id;
-    // 2️⃣ Find event
-    const event = yield prisma_1.prisma.event.findFirst({ where: { id: eventId, isDeleted: false } });
-    if (!event)
-        throw new Error("Event not found");
-    if ([client_1.EventStatus.LIVE, client_1.EventStatus.COMPLETED, client_1.EventStatus.REGISTRATION_CLOSED].includes(event.status))
-        throw new Error("Cannot join this event now");
-    if (event.availableSeats !== null && event.availableSeats <= 0)
-        throw new Error("No seats available");
-    // 3️⃣ Check duplicate participation
-    const alreadyJoined = yield prisma_1.prisma.eventParticipator.findFirst({ where: { eventId, userId } });
-    if (alreadyJoined)
-        throw new Error("Already joined this event");
-    // 4️⃣ Create participation and payment
-    return yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-        // Participation (seat reserved, not yet booked)
-        const participation = yield tx.eventParticipator.create({
-            data: { eventId, userId, participatorId },
-        });
-        console.log("create partition");
-        // Payment record (UNPAID)
-        const payment = yield tx.payment.create({
-            data: {
-                eventParticipationId: participation.id,
-                eventId,
-                userId,
-                amount: event.joiningFee,
-                status: client_1.PaymentStatus.UNPAID,
-                method: client_1.PaymentMethod.STRIPE,
-                transactionId: (0, uuid_1.v4)(),
-            },
-        });
-        console.log("create paynent");
-        // 5️⃣ Create Stripe session
-        const session = yield stripe_1.stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            mode: "payment",
-            customer_email: userEmail,
-            line_items: [
-                {
-                    price_data: {
-                        currency: "bdt",
-                        product_data: { name: `Event: ${event.title}` },
-                        unit_amount: event.joiningFee * 100,
-                    },
-                    quantity: 1,
-                },
-            ],
-            metadata: {
-                eventId: event.id,
-                paymentId: payment.id,
-                eventParticipatorId: participation.id,
-            },
-            success_url: `https://web.programming-hero.com/home/payment-success?eventId=${event.id}`,
-            cancel_url: `https://next.programming-hero.com/payment-cancel?eventId=${event.id}`,
-        });
-        console.log("create session payment", session);
-        return {
-            paymentUrl: session.url,
-            participationId: participation.id,
-            paymentId: payment.id,
-        };
-    }));
-});
-// ...existing code...
 exports.ParticipatorService = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
     getByIdFromDB,
-    createParticipation,
 };

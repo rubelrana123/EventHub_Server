@@ -58,20 +58,9 @@ const getByIdFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, 
         data: result,
     });
 }));
-const createParticipation = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { eventId } = req.params;
-    const result = yield participator_service_1.ParticipatorService.createParticipation(eventId, req.user);
-    (0, sendResponse_1.default)(res, {
-        statusCode: 200,
-        success: true,
-        message: "Event joined successfully",
-        data: result,
-    });
-}));
 exports.ParticipatorController = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
     getByIdFromDB,
-    createParticipation
 };

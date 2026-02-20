@@ -26,6 +26,8 @@ const prisma_1 = require("../../shared/prisma");
 const fileUploader_1 = require("../../helper/fileUploader");
 const paginationHelper_1 = require("../../helper/paginationHelper");
 const event_constant_1 = require("./event.constant");
+const stripe_1 = require("../../helper/stripe");
+const uuid_1 = require("uuid");
 // ============================
 // CREATE EVENT
 // ============================
@@ -218,33 +220,135 @@ const deleteEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, functio
 // ============================
 // USER JOINS EVENT
 // ============================
+// const joinEvent = async (eventId: string, user: any) => {
+//   const userId = user.id;
+//   const event = await prisma.event.findUniqueOrThrow({
+//     where: { id: eventId },
+//     include: {
+//       participators: true,
+//     },
+//   });
+//   // Check max participants
+//   if (
+//     event.maxParticipants &&
+//     event.participators.length >= event.maxParticipants
+//   ) {
+//     throw new Error("Event seats are full");
+//   }
+//   const participator = await prisma.participator.findUnique({
+//     where: { email: user.email },
+//   });
+//   if (!participator) {
+//     throw new Error("You must have a Participator profile to join an event");
+//   }
+//   const result = await prisma.eventParticipator.create({
+//     data: {
+//       eventId,
+//       userId,
+//       participatorId: participator.id,
+//     },
+//   });
+//   return result;
+// };
+const getFrontendBaseUrl = () => {
+    return process.env.FRONTEND_URL || "http://localhost:3000";
+};
+const createStripeSessionForParticipation = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const baseUrl = getFrontendBaseUrl();
+    return stripe_1.stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        mode: "payment",
+        customer_email: params.userEmail,
+        line_items: [
+            {
+                price_data: {
+                    currency: "bdt",
+                    product_data: { name: `Event: ${params.eventTitle}` },
+                    unit_amount: params.eventFee * 100,
+                },
+                quantity: 1,
+            },
+        ],
+        metadata: {
+            eventId: params.eventId,
+            paymentId: params.paymentId,
+            eventParticipatorId: params.participationId,
+        },
+        success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
+        cancel_url: `${baseUrl}/events/${params.eventId}`,
+    });
+});
 const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = user.id;
-    const event = yield prisma_1.prisma.event.findUniqueOrThrow({
-        where: { id: eventId },
-        include: {
-            participators: true,
-        },
+    var _a, _b;
+    const userEmail = user === null || user === void 0 ? void 0 : user.email;
+    const dbUser = yield prisma_1.prisma.user.findFirst({
+        where: { email: userEmail, status: client_1.UserStatus.ACTIVE },
+        include: { participator: true },
     });
-    // Check max participants
-    if (event.maxParticipants &&
-        event.participators.length >= event.maxParticipants) {
-        throw new Error("Event seats are full");
+    if (!dbUser || !dbUser.participator) {
+        throw new Error("User not found or cannot participate");
     }
-    const participator = yield prisma_1.prisma.participator.findUnique({
-        where: { email: user.email },
+    const userId = dbUser.id;
+    const participatorId = dbUser.participator.id;
+    const event = yield prisma_1.prisma.event.findFirst({
+        where: { id: eventId, isDeleted: false },
     });
-    if (!participator) {
-        throw new Error("You must have a Participator profile to join an event");
+    if (!event)
+        throw new Error("Event not found");
+    if ([client_1.EventStatus.LIVE, client_1.EventStatus.COMPLETED, client_1.EventStatus.REGISTRATION_CLOSED].includes(event.status)) {
+        throw new Error("Cannot join this event now");
     }
-    const result = yield prisma_1.prisma.eventParticipator.create({
-        data: {
-            eventId,
-            userId,
-            participatorId: participator.id,
-        },
+    if (event.availableSeats !== null && event.availableSeats <= 0) {
+        throw new Error("No seats available");
+    }
+    const existingParticipation = yield prisma_1.prisma.eventParticipator.findFirst({
+        where: { eventId, userId },
+        include: { payment: true },
     });
-    return result;
+    if ((existingParticipation === null || existingParticipation === void 0 ? void 0 : existingParticipation.isBooked) || ((_a = existingParticipation === null || existingParticipation === void 0 ? void 0 : existingParticipation.payment) === null || _a === void 0 ? void 0 : _a.status) === client_1.PaymentStatus.PAID) {
+        throw new Error("Already joined this event");
+    }
+    const participationAndPayment = existingParticipation
+        ? {
+            participationId: existingParticipation.id,
+            paymentId: (_b = existingParticipation.payment) === null || _b === void 0 ? void 0 : _b.id,
+        }
+        : yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            const participation = yield tx.eventParticipator.create({
+                data: { eventId, userId, participatorId },
+            });
+            const payment = yield tx.payment.create({
+                data: {
+                    eventParticipationId: participation.id,
+                    eventId,
+                    userId,
+                    amount: event.joiningFee,
+                    status: client_1.PaymentStatus.UNPAID,
+                    method: client_1.PaymentMethod.STRIPE,
+                    transactionId: (0, uuid_1.v4)(),
+                },
+            });
+            return {
+                participationId: participation.id,
+                paymentId: payment.id,
+            };
+        }));
+    if (!participationAndPayment.paymentId) {
+        throw new Error("Payment information not found");
+    }
+    const session = yield createStripeSessionForParticipation({
+        eventId: event.id,
+        eventTitle: event.title,
+        eventFee: event.joiningFee,
+        userEmail,
+        paymentId: participationAndPayment.paymentId,
+        participationId: participationAndPayment.participationId,
+    });
+    return {
+        paymentUrl: session.url,
+        participationId: participationAndPayment.participationId,
+        paymentId: participationAndPayment.paymentId,
+    };
 });
 // ============================
 // EXPORT

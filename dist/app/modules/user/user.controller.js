@@ -57,9 +57,20 @@ const getAllFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, v
         data: result.data
     });
 }));
+const updateMyProfie = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = req.user;
+    const result = yield user_service_1.UserService.updateMyProfile(user, req);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: "My profile updated!",
+        data: result
+    });
+}));
 exports.UserController = {
     createParticipator,
     createAdmin,
     createHost,
-    getAllFromDB
+    getAllFromDB,
+    updateMyProfie
 };
