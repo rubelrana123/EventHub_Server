@@ -17,7 +17,7 @@ app.post(
     PaymentController.handleStripeWebhookEvent
 );
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'https://event-hub-client-iota.vercel.app/',
     credentials: true
 }));
 
