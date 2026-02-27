@@ -44,6 +44,16 @@ const deleteParticipatorFromDB = catchAsync(async (req: Request, res: Response) 
     })
 })
 
+const softDeleteParticipatorFromDB = catchAsync(async (req: Request, res: Response) => {
+    const result = await ParticipatorService.softDeleteParticipatorFromDB(req.params.id);
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Participator soft deleted successfully!",
+        data: result
+    })
+})
+
 const getByIdFromDB = catchAsync(async (req: Request, res: Response) => {
 
   const { id } = req.params;
@@ -63,6 +73,7 @@ export const ParticipatorController = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
+    softDeleteParticipatorFromDB,
     getByIdFromDB,
      
   

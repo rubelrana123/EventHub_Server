@@ -48,6 +48,15 @@ const deleteParticipatorFromDB = (0, catchAsync_1.default)((req, res) => __await
         data: result
     });
 }));
+const softDeleteParticipatorFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield participator_service_1.ParticipatorService.softDeleteParticipatorFromDB(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: "Participator soft deleted successfully!",
+        data: result
+    });
+}));
 const getByIdFromDB = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const result = yield participator_service_1.ParticipatorService.getByIdFromDB(id);
@@ -62,5 +71,6 @@ exports.ParticipatorController = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
+    softDeleteParticipatorFromDB,
     getByIdFromDB,
 };

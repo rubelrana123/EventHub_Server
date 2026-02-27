@@ -35,7 +35,7 @@ const getAllFromDB = async (
   }
 
   // Only show active hosts
-  andConditions.push({ isDeleted: false });
+  // andConditions.push({ isDeleted: false });
 
   const whereConditions: Prisma.HostWhereInput = {
     AND: andConditions,

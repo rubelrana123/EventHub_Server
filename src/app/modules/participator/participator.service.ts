@@ -60,7 +60,7 @@ const getAllParticipator = async (filters: any, options: IOptions) => {
       reviews: true,
       eventParticipations: {
         include: {
-          event: true, // ⭐ All joined event history
+          event: true,  
         },
       },
     },
@@ -83,6 +83,22 @@ const getAllParticipator = async (filters: any, options: IOptions) => {
 const deleteParticipatorFromDB = async (id: string) => {
   return await prisma.participator.delete({
     where: { id },
+  });
+};
+
+const softDeleteParticipatorFromDB = async (id: string) => {
+  return await prisma.$transaction(async (tx) => {
+    const deletedParticipator = await tx.participator.update({
+      where: { id },
+      data: { isDeleted: true },
+    });
+
+    await tx.user.update({
+      where: { email: deletedParticipator.email },
+      data: { status: UserStatus.DELETED },
+    });
+
+    return deletedParticipator;
   });
 };
 
@@ -155,6 +171,7 @@ export const ParticipatorService = {
   getAllParticipator,
   updateIntoDB,
   deleteParticipatorFromDB,
+  softDeleteParticipatorFromDB,
   getByIdFromDB,
  
 };

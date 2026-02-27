@@ -14,4 +14,5 @@ router.get("/", (0, auth_1.default)(client_1.UserRole.ADMIN), participator_contr
 router.get('/:id', participator_controller_1.ParticipatorController.getByIdFromDB);
 router.patch("/", (0, auth_1.default)(client_1.UserRole.PARTICIPATOR), participator_controller_1.ParticipatorController.updateIntoDB);
 router.delete("/:id", (0, auth_1.default)(client_1.UserRole.ADMIN), participator_controller_1.ParticipatorController.deleteParticipatorFromDB);
+router.delete("/soft/:id", (0, auth_1.default)(client_1.UserRole.ADMIN), participator_controller_1.ParticipatorController.softDeleteParticipatorFromDB);
 exports.ParticipatorRoutes = router;

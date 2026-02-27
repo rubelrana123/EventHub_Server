@@ -21,6 +21,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ParticipatorService = void 0;
+const client_1 = require("@prisma/client");
 const participator_constant_1 = require("./participator.constant");
 const paginationHelper_1 = require("../../helper/paginationHelper");
 const prisma_1 = require("../../shared/prisma");
@@ -61,7 +62,7 @@ const getAllParticipator = (filters, options) => __awaiter(void 0, void 0, void 
             reviews: true,
             eventParticipations: {
                 include: {
-                    event: true, // ⭐ All joined event history
+                    event: true,
                 },
             },
         },
@@ -82,6 +83,19 @@ const deleteParticipatorFromDB = (id) => __awaiter(void 0, void 0, void 0, funct
     return yield prisma_1.prisma.participator.delete({
         where: { id },
     });
+});
+const softDeleteParticipatorFromDB = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    return yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+        const deletedParticipator = yield tx.participator.update({
+            where: { id },
+            data: { isDeleted: true },
+        });
+        yield tx.user.update({
+            where: { email: deletedParticipator.email },
+            data: { status: client_1.UserStatus.DELETED },
+        });
+        return deletedParticipator;
+    }));
 });
 /**
 
@@ -141,5 +155,6 @@ exports.ParticipatorService = {
     getAllParticipator,
     updateIntoDB,
     deleteParticipatorFromDB,
+    softDeleteParticipatorFromDB,
     getByIdFromDB,
 };

@@ -50,7 +50,7 @@ const getAllFromDB = (filters, options) => __awaiter(void 0, void 0, void 0, fun
         });
     }
     // Only show active hosts
-    andConditions.push({ isDeleted: false });
+    // andConditions.push({ isDeleted: false });
     const whereConditions = {
         AND: andConditions,
     };

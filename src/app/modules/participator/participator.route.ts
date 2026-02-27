@@ -29,6 +29,12 @@ router.delete(
     auth(UserRole.ADMIN),
     ParticipatorController.deleteParticipatorFromDB
 )
+
+router.delete(
+    "/soft/:id",
+    auth(UserRole.ADMIN),
+    ParticipatorController.softDeleteParticipatorFromDB
+)
  
 
 export const ParticipatorRoutes = router;
