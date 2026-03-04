@@ -251,7 +251,15 @@ const deleteEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, functio
 //   return result;
 // };
 const getFrontendBaseUrl = () => {
-    return process.env.FRONTEND_URL || "http://localhost:3000";
+    var _a;
+    const frontendUrl = (_a = process.env.FRONTEND_URL) === null || _a === void 0 ? void 0 : _a.trim();
+    if (frontendUrl) {
+        return frontendUrl.replace(/\/+$/, "");
+    }
+    if (process.env.NODE_ENV === "production") {
+        return "https://event-hub-client-iota.vercel.app";
+    }
+    return "http://localhost:3000";
 };
 const createStripeSessionForParticipation = (params) => __awaiter(void 0, void 0, void 0, function* () {
     const baseUrl = getFrontendBaseUrl();
@@ -275,7 +283,7 @@ const createStripeSessionForParticipation = (params) => __awaiter(void 0, void 0
             eventParticipatorId: params.participationId,
         },
         success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
-        cancel_url: `${baseUrl}/events/${params.eventId}`,
+        cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}`,
     });
 });
 const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function* () {

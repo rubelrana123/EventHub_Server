@@ -277,7 +277,17 @@ const deleteEvent = async (eventId: string, user: any) => {
 //   return result;
 // };
 const getFrontendBaseUrl = () => {
-  return process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = process.env.FRONTEND_URL?.trim();
+
+  if (frontendUrl) {
+    return frontendUrl.replace(/\/+$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return "https://event-hub-client-iota.vercel.app";
+  }
+
+  return "http://localhost:3000";
 };
 
 const createStripeSessionForParticipation = async (params: {
@@ -310,7 +320,7 @@ const createStripeSessionForParticipation = async (params: {
       eventParticipatorId: params.participationId,
     },
     success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
-    cancel_url: `${baseUrl}/events/${params.eventId}`,
+    cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}`,
   });
 };
 
