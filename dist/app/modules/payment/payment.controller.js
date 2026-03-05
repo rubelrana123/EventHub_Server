@@ -14,7 +14,7 @@ const client_1 = require("@prisma/client");
 const stripe_1 = require("../../helper/stripe");
 const prisma_1 = require("../../shared/prisma");
 const handleStripeWebhookEvent = (req) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     console.log("hit strpe hook");
     const sig = req.headers["stripe-signature"];
     console.log("hit strpe hook headers", req.headers);
@@ -32,12 +32,17 @@ const handleStripeWebhookEvent = (req) => __awaiter(void 0, void 0, void 0, func
         const eventId = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.eventId;
         const paymentId = (_b = session.metadata) === null || _b === void 0 ? void 0 : _b.paymentId;
         const eventParticipatorId = (_c = session.metadata) === null || _c === void 0 ? void 0 : _c.eventParticipatorId;
+        const parsedQuantity = Number(((_d = session.metadata) === null || _d === void 0 ? void 0 : _d.quantity) || 1);
+        const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0
+            ? Math.floor(parsedQuantity)
+            : 1;
         if (!eventId || !paymentId || !eventParticipatorId) {
             console.error("❌ Missing metadata in Stripe session");
             return { received: true };
         }
         try {
             yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+                var _a;
                 // 1️⃣ Update payment status
                 yield tx.payment.update({
                     where: { id: paymentId },
@@ -55,14 +60,14 @@ const handleStripeWebhookEvent = (req) => __awaiter(void 0, void 0, void 0, func
                 // 3️⃣ Decrement available seats
                 yield tx.event.update({
                     where: { id: eventId },
-                    data: { availableSeats: { decrement: 1 } },
+                    data: { availableSeats: { decrement: quantity } },
                 });
                 // 4️⃣ Auto-close registration if no seats left
                 const eventData = yield tx.event.findUnique({
                     where: { id: eventId },
                     select: { availableSeats: true },
                 });
-                if ((eventData === null || eventData === void 0 ? void 0 : eventData.availableSeats) === 0) {
+                if (((_a = eventData === null || eventData === void 0 ? void 0 : eventData.availableSeats) !== null && _a !== void 0 ? _a : 0) <= 0) {
                     yield tx.event.update({
                         where: { id: eventId },
                         data: { status: client_1.EventStatus.REGISTRATION_CLOSED },

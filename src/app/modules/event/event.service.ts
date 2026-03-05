@@ -9,6 +9,7 @@ import {
 import { prisma } from "../../shared/prisma";import { fileUploader } from "../../helper/fileUploader";
 import { IOptions, paginationHelper } from "../../helper/paginationHelper";
 import { eventSearchableFields } from "./event.constant";
+import config from "../../../config";
  
 import { stripe } from "../../helper/stripe";
 import { v4 as uuidv4 } from "uuid";
@@ -277,23 +278,22 @@ const deleteEvent = async (eventId: string, user: any) => {
 //   return result;
 // };
 const getFrontendBaseUrl = () => {
-  const frontendUrl = process.env.FRONTEND_URL?.trim();
+  const frontendUrl = config.frontendUrl?.trim().replace(/\/+$/, "");
 
-  if (frontendUrl) {
-    return frontendUrl.replace(/\/+$/, "");
+  if (!frontendUrl) {
+    throw new Error(
+      "FRONTEND_URL is not set in environment variables"
+    );
   }
 
-  if (process.env.NODE_ENV === "production") {
-    return "https://event-hub-client-iota.vercel.app";
-  }
-
-  return "http://localhost:3000";
+  return frontendUrl;
 };
 
 const createStripeSessionForParticipation = async (params: {
   eventId: string;
   eventTitle: string;
   eventFee: number;
+  quantity: number;
   userEmail: string;
   paymentId: string;
   participationId: string;
@@ -311,20 +311,25 @@ const createStripeSessionForParticipation = async (params: {
           product_data: { name: `Event: ${params.eventTitle}` },
           unit_amount: params.eventFee * 100,
         },
-        quantity: 1,
+        quantity: params.quantity,
       },
     ],
     metadata: {
       eventId: params.eventId,
       paymentId: params.paymentId,
       eventParticipatorId: params.participationId,
+      quantity: params.quantity.toString(),
     },
-    success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
-    cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}`,
+    success_url: `${baseUrl}/payment/success?eventId=${params.eventId}&quantity=${params.quantity}`,
+    cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}&quantity=${params.quantity}`,
   });
 };
 
-const joinEvent = async (eventId: string, user: any) => {
+const joinEvent = async (eventId: string, user: any, quantity = 1) => {
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new Error("Quantity must be at least 1");
+  }
+
   const userEmail = user?.email;
 
   const dbUser = await prisma.user.findFirst({
@@ -350,7 +355,7 @@ const joinEvent = async (eventId: string, user: any) => {
     throw new Error("Cannot join this event now");
   }
 
-  if (event.availableSeats !== null && event.availableSeats <= 0) {
+  if (event.availableSeats !== null && event.availableSeats < quantity) {
     throw new Error("No seats available");
   }
 
@@ -363,11 +368,45 @@ const joinEvent = async (eventId: string, user: any) => {
     throw new Error("Already joined this event");
   }
 
+  const totalAmount = event.joiningFee * quantity;
+
   const participationAndPayment = existingParticipation
-    ? {
-        participationId: existingParticipation.id,
-        paymentId: existingParticipation.payment?.id,
-      }
+    ? await prisma.$transaction(async (tx) => {
+        const participationId = existingParticipation.id;
+        let paymentId = existingParticipation.payment?.id;
+
+        if (paymentId) {
+          await tx.payment.update({
+            where: { id: paymentId },
+            data: {
+              amount: totalAmount,
+              status: PaymentStatus.UNPAID,
+              method: PaymentMethod.STRIPE,
+              transactionId: uuidv4(),
+            },
+          });
+        } else {
+          const payment = await tx.payment.create({
+            data: {
+              eventParticipationId: participationId,
+              eventId,
+              userId,
+              amount: totalAmount,
+              status: PaymentStatus.UNPAID,
+              method: PaymentMethod.STRIPE,
+              transactionId: uuidv4(),
+            },
+          });
+          paymentId = payment.id;
+
+          await tx.eventParticipator.update({
+            where: { id: participationId },
+            data: { paymentId },
+          });
+        }
+
+        return { participationId, paymentId };
+      })
     : await prisma.$transaction(async (tx) => {
         const participation = await tx.eventParticipator.create({
           data: { eventId, userId, participatorId },
@@ -378,7 +417,7 @@ const joinEvent = async (eventId: string, user: any) => {
             eventParticipationId: participation.id,
             eventId,
             userId,
-            amount: event.joiningFee,
+            amount: totalAmount,
             status: PaymentStatus.UNPAID,
             method: PaymentMethod.STRIPE,
             transactionId: uuidv4(),
@@ -399,6 +438,7 @@ const joinEvent = async (eventId: string, user: any) => {
     eventId: event.id,
     eventTitle: event.title,
     eventFee: event.joiningFee,
+    quantity,
     userEmail,
     paymentId: participationAndPayment.paymentId,
     participationId: participationAndPayment.participationId,
@@ -408,6 +448,8 @@ const joinEvent = async (eventId: string, user: any) => {
     paymentUrl: session.url,
     participationId: participationAndPayment.participationId,
     paymentId: participationAndPayment.paymentId,
+    quantity,
+    totalAmount,
   };
 };
 // ============================

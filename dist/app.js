@@ -13,11 +13,29 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const payment_controller_1 = require("./app/modules/payment/payment.controller");
 const app = (0, express_1.default)();
 app.use((0, cookie_parser_1.default)());
+const normalizeUrl = (url) => url === null || url === void 0 ? void 0 : url.trim().replace(/\/+$/, "");
+const getAllowedOrigins = () => {
+    const fromEnv = (config_1.default.corsOrigins || config_1.default.frontendUrl || "")
+        .split(",")
+        .map((origin) => normalizeUrl(origin))
+        .filter((origin) => Boolean(origin));
+    return [...new Set(fromEnv)];
+};
+const allowedOrigins = getAllowedOrigins();
 // Stripe webhook endpoint
 app.post("/webhook", express_1.default.raw({ type: "application/json" }), payment_controller_1.PaymentController.handleStripeWebhookEvent);
 app.use((0, cors_1.default)({
-    origin: 'https://event-hub-client-iota.vercel.app',
-    // origin: 'http://localhost:3000', 
+    origin: (origin, callback) => {
+        const normalizedOrigin = normalizeUrl(origin);
+        // allow requests with no origin (server-to-server, curl, postman)
+        if (!normalizedOrigin) {
+            return callback(null, true);
+        }
+        if (allowedOrigins.length > 0 && allowedOrigins.includes(normalizedOrigin)) {
+            return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true
 }));
 //parser 

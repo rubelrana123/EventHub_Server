@@ -110,10 +110,12 @@ const deleteEvent = catchAsync(async (req, res) => {
 // });
 const joinEvent = catchAsync(async (req, res) => {
   const { eventId } = req.params;
+  const quantity = Number(req.body?.quantity || 1);
 
   const result = await  EventService.joinEvent(
     eventId,
-   ( req as any).user
+   ( req as any).user,
+   quantity
   )
   sendResponse(res, {
       statusCode: 200,

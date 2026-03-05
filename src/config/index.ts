@@ -7,6 +7,8 @@ export default {
     node_env: process.env.NODE_ENV,
     port: process.env.PORT,
     database_url: process.env.DATABASE_URL,
+    frontendUrl: process.env.FRONTEND_URL,
+    corsOrigins: process.env.CORS_ORIGINS,
     //cloudinary config
     cloudinary: {
         api_secret: process.env.CLOUDINARY_API_SECRET,

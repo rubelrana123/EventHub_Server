@@ -19,6 +19,9 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventService = void 0;
 const client_1 = require("@prisma/client");
@@ -26,6 +29,7 @@ const prisma_1 = require("../../shared/prisma");
 const fileUploader_1 = require("../../helper/fileUploader");
 const paginationHelper_1 = require("../../helper/paginationHelper");
 const event_constant_1 = require("./event.constant");
+const config_1 = __importDefault(require("../../../config"));
 const stripe_1 = require("../../helper/stripe");
 const uuid_1 = require("uuid");
 // ============================
@@ -252,14 +256,11 @@ const deleteEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, functio
 // };
 const getFrontendBaseUrl = () => {
     var _a;
-    const frontendUrl = (_a = process.env.FRONTEND_URL) === null || _a === void 0 ? void 0 : _a.trim();
-    if (frontendUrl) {
-        return frontendUrl.replace(/\/+$/, "");
+    const frontendUrl = (_a = config_1.default.frontendUrl) === null || _a === void 0 ? void 0 : _a.trim().replace(/\/+$/, "");
+    if (!frontendUrl) {
+        throw new Error("FRONTEND_URL is not set in environment variables");
     }
-    if (process.env.NODE_ENV === "production") {
-        return "https://event-hub-client-iota.vercel.app";
-    }
-    return "http://localhost:3000";
+    return frontendUrl;
 };
 const createStripeSessionForParticipation = (params) => __awaiter(void 0, void 0, void 0, function* () {
     const baseUrl = getFrontendBaseUrl();
@@ -274,20 +275,24 @@ const createStripeSessionForParticipation = (params) => __awaiter(void 0, void 0
                     product_data: { name: `Event: ${params.eventTitle}` },
                     unit_amount: params.eventFee * 100,
                 },
-                quantity: 1,
+                quantity: params.quantity,
             },
         ],
         metadata: {
             eventId: params.eventId,
             paymentId: params.paymentId,
             eventParticipatorId: params.participationId,
+            quantity: params.quantity.toString(),
         },
-        success_url: `${baseUrl}/payment/success?eventId=${params.eventId}`,
-        cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}`,
+        success_url: `${baseUrl}/payment/success?eventId=${params.eventId}&quantity=${params.quantity}`,
+        cancel_url: `${baseUrl}/payment/cancel?eventId=${params.eventId}&quantity=${params.quantity}`,
     });
 });
-const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+const joinEvent = (eventId_1, user_1, ...args_1) => __awaiter(void 0, [eventId_1, user_1, ...args_1], void 0, function* (eventId, user, quantity = 1) {
+    var _a;
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new Error("Quantity must be at least 1");
+    }
     const userEmail = user === null || user === void 0 ? void 0 : user.email;
     const dbUser = yield prisma_1.prisma.user.findFirst({
         where: { email: userEmail, status: client_1.UserStatus.ACTIVE },
@@ -306,7 +311,7 @@ const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function*
     if ([client_1.EventStatus.LIVE, client_1.EventStatus.COMPLETED, client_1.EventStatus.REGISTRATION_CLOSED].includes(event.status)) {
         throw new Error("Cannot join this event now");
     }
-    if (event.availableSeats !== null && event.availableSeats <= 0) {
+    if (event.availableSeats !== null && event.availableSeats < quantity) {
         throw new Error("No seats available");
     }
     const existingParticipation = yield prisma_1.prisma.eventParticipator.findFirst({
@@ -316,11 +321,43 @@ const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function*
     if ((existingParticipation === null || existingParticipation === void 0 ? void 0 : existingParticipation.isBooked) || ((_a = existingParticipation === null || existingParticipation === void 0 ? void 0 : existingParticipation.payment) === null || _a === void 0 ? void 0 : _a.status) === client_1.PaymentStatus.PAID) {
         throw new Error("Already joined this event");
     }
+    const totalAmount = event.joiningFee * quantity;
     const participationAndPayment = existingParticipation
-        ? {
-            participationId: existingParticipation.id,
-            paymentId: (_b = existingParticipation.payment) === null || _b === void 0 ? void 0 : _b.id,
-        }
+        ? yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a;
+            const participationId = existingParticipation.id;
+            let paymentId = (_a = existingParticipation.payment) === null || _a === void 0 ? void 0 : _a.id;
+            if (paymentId) {
+                yield tx.payment.update({
+                    where: { id: paymentId },
+                    data: {
+                        amount: totalAmount,
+                        status: client_1.PaymentStatus.UNPAID,
+                        method: client_1.PaymentMethod.STRIPE,
+                        transactionId: (0, uuid_1.v4)(),
+                    },
+                });
+            }
+            else {
+                const payment = yield tx.payment.create({
+                    data: {
+                        eventParticipationId: participationId,
+                        eventId,
+                        userId,
+                        amount: totalAmount,
+                        status: client_1.PaymentStatus.UNPAID,
+                        method: client_1.PaymentMethod.STRIPE,
+                        transactionId: (0, uuid_1.v4)(),
+                    },
+                });
+                paymentId = payment.id;
+                yield tx.eventParticipator.update({
+                    where: { id: participationId },
+                    data: { paymentId },
+                });
+            }
+            return { participationId, paymentId };
+        }))
         : yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
             const participation = yield tx.eventParticipator.create({
                 data: { eventId, userId, participatorId },
@@ -330,7 +367,7 @@ const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function*
                     eventParticipationId: participation.id,
                     eventId,
                     userId,
-                    amount: event.joiningFee,
+                    amount: totalAmount,
                     status: client_1.PaymentStatus.UNPAID,
                     method: client_1.PaymentMethod.STRIPE,
                     transactionId: (0, uuid_1.v4)(),
@@ -348,6 +385,7 @@ const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function*
         eventId: event.id,
         eventTitle: event.title,
         eventFee: event.joiningFee,
+        quantity,
         userEmail,
         paymentId: participationAndPayment.paymentId,
         participationId: participationAndPayment.participationId,
@@ -356,6 +394,8 @@ const joinEvent = (eventId, user) => __awaiter(void 0, void 0, void 0, function*
         paymentUrl: session.url,
         participationId: participationAndPayment.participationId,
         paymentId: participationAndPayment.paymentId,
+        quantity,
+        totalAmount,
     };
 });
 // ============================

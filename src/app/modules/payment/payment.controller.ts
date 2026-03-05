@@ -25,6 +25,11 @@ import { prisma } from "../../shared/prisma";
     const eventId = session.metadata?.eventId;
     const paymentId = session.metadata?.paymentId;
     const eventParticipatorId = session.metadata?.eventParticipatorId;
+    const parsedQuantity = Number(session.metadata?.quantity || 1);
+    const quantity =
+      Number.isFinite(parsedQuantity) && parsedQuantity > 0
+        ? Math.floor(parsedQuantity)
+        : 1;
 
     if (!eventId || !paymentId || !eventParticipatorId) {
       console.error("❌ Missing metadata in Stripe session");
@@ -52,7 +57,7 @@ import { prisma } from "../../shared/prisma";
         // 3️⃣ Decrement available seats
         await tx.event.update({
           where: { id: eventId },
-          data: { availableSeats: { decrement: 1 } },
+          data: { availableSeats: { decrement: quantity } },
         });
 
         // 4️⃣ Auto-close registration if no seats left
@@ -61,7 +66,7 @@ import { prisma } from "../../shared/prisma";
           select: { availableSeats: true },
         });
 
-        if (eventData?.availableSeats === 0) {
+        if ((eventData?.availableSeats ?? 0) <= 0) {
           await tx.event.update({
             where: { id: eventId },
             data: { status: EventStatus.REGISTRATION_CLOSED },

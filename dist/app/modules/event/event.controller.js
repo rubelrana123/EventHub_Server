@@ -104,8 +104,10 @@ const deleteEvent = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, vo
 //   });
 // });
 const joinEvent = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const { eventId } = req.params;
-    const result = yield event_service_1.EventService.joinEvent(eventId, req.user);
+    const quantity = Number(((_a = req.body) === null || _a === void 0 ? void 0 : _a.quantity) || 1);
+    const result = yield event_service_1.EventService.joinEvent(eventId, req.user, quantity);
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
         success: true,
